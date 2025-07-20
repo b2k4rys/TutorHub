@@ -1,12 +1,17 @@
-import Header from './components/Headers'
-function App() {
-  
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import SignIn from "./pages/SignIn"
+import SignUp from "./pages/SignUp"
+import HomePage from "./pages/Index" 
 
+function App() {
   return (
-    <>
-  
-    <Header />
-    </>
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
+      </Routes>
+    </Router>
   )
 }
 

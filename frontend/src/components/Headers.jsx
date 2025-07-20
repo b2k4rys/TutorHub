@@ -3,6 +3,7 @@
 import { BookOpen } from "lucide-react"
 import SignInButton from "./buttons/SignInButton"
 import SignUpButton from './buttons/SignUpButton'
+import { Link } from "react-router-dom"
 
 export default function Header() {
   return (
@@ -29,8 +30,14 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <SignInButton onClick={() => console.log("Sign In clicked")} />
-            <SignUpButton onClick={() => console.log("Sign Up clicked")} />
+          <div className="flex items-center space-x-4">
+            <Link to="/signin" className="text-blue-700 hover:text-blue-900 font-medium">
+              Sign In
+            </Link>
+            <Link to="/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium">
+              Sign Up
+            </Link>
+          </div>
           </div>
         </div>
       </div>
