@@ -1,6 +1,10 @@
 import React, { useState } from "react"
 import { BookOpen, Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react"
 
+import { Button } from "../components/ui/button"
+import { Checkbox } from "../components/ui/checkbox"
+import { Alert, AlertDescription } from "../components/ui/alert"
+
 export default function SignIn() {
   const [formData, setFormData] = useState({
     email: "",

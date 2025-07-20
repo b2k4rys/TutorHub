@@ -1,11 +1,17 @@
 // src/components/Header.jsx
 
 import { BookOpen } from "lucide-react"
-import SignInButton from "./buttons/SignInButton"
-import SignUpButton from './buttons/SignUpButton'
 import { Link } from "react-router-dom"
+import { Button } from  './ui/button'
+import { Checkbox } from './ui/checkbox'
+import { Alert, AlertDescription } from './ui/alert'
+import { useNavigate } from "react-router-dom"
+
+
 
 export default function Header() {
+  const navigate = useNavigate()
+
   return (
     <header className="border-b border-blue-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,7 +28,7 @@ export default function Header() {
               Features
             </a>
             <a href="#courses" className="text-blue-700 hover:text-blue-900 font-medium">
-              Courses
+              Pricing
             </a>
             <a href="#about" className="text-blue-700 hover:text-blue-900 font-medium">
               About
@@ -31,13 +37,22 @@ export default function Header() {
 
           <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-4">
-            <Link to="/signin" className="text-blue-700 hover:text-blue-900 font-medium">
+            <Button
+              variant="ghost"
+              className="text-blue-700 hover:text-blue-900"
+              onClick={() => navigate("/signin")}
+            >
               Sign In
-            </Link>
-            <Link to="/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium">
-              Sign Up
-            </Link>
+            </Button>
+
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => navigate("/signup")}
+            >
+              Get Started
+            </Button>
           </div>
+
           </div>
         </div>
       </div>
