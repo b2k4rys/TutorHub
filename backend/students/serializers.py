@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import StudentProfile
 class StudentProfileRegisterSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = StudentProfile 
         fields = ['user', 'grade', 'school_name']
