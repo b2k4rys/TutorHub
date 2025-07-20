@@ -1,5 +1,4 @@
 from django.db import models
-from enum import Enum
 from django.contrib.auth.models import User
 from students.models import StudentProfile
 
@@ -23,7 +22,7 @@ class Classroom(models.Model):
         choices=ClassroomTypes.choices
     )
 
-    tutor = models.ForeignKey(User, on_delete=models.CASCADE)
+    tutor = models.ForeignKey("tutors.Tutor", on_delete=models.CASCADE)
     students = models.ManyToManyField(StudentProfile, related_name='classrooms', blank=True, null=True)
 
     def __str__(self):

@@ -9,4 +9,7 @@ class Tutor(models.Model):
     subject = models.CharField(choices=ClassroomSubjects.choices)
     description = models.TextField()
 
+    def __str__(self):
+        return f"{self.user.first_name if self.user.first_name else self.user.username} tutor"
+
 
