@@ -1,8 +1,5 @@
-from django.shortcuts import render
-from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework import permissions
-from .models import StudentProfile
 from .serializers import StudentProfileRegisterSerializer
 from rest_framework.response import Response
 # Create your views here.
