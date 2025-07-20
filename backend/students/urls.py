@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import StudentProfileView
+from .views import StudentProfileRegisterView
 urlpatterns = [
-    path('student/register/', StudentProfileView.as_view())
+    path('student/register/', StudentProfileRegisterView.as_view())
 ]
