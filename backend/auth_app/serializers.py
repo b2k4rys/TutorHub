@@ -2,8 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from students.serializers import StudentRegisterSerializer
 from tutors.serializers import TutorAddSerializer
-from students.models import Student
-from tutors.models import Tutor
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField(required=True, allow_blank=False)
@@ -18,7 +17,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
     
-class RoleBasedUserSerializer(serializers.ModelSerializer):
+class RoleBasedUserSerializer(serializers.Serializer):
     user = RegisterSerializer()
     role = serializers.ChoiceField(choices=['student', 'tutor'])
 
@@ -27,10 +26,11 @@ class RoleBasedUserSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         role = data.get('role')
-        if role == 'student' and 'student_data' not in data:
-            raise serializers.ValidationError("Missing student_data for student role.")
-        if role == 'tutor' and 'tutor_data' not in data:
-            raise serializers.ValidationError("Missing tutor_data for tutor role.")
+
+        if role == 'student' and not data.get('student_data'):
+            raise serializers.ValidationError("student_data is required for student role.")
+        if role == 'tutor' and not data.get('tutor_data'):
+            raise serializers.ValidationError("tutor_data is required for tutor role.")
         return data
 
 
@@ -38,13 +38,18 @@ class RoleBasedUserSerializer(serializers.ModelSerializer):
         role = validated_data['role']
         user_data = validated_data['user']
         user = User.objects.create_user(**user_data)
-
+        
         if role == 'student':
             student_data = validated_data['student_data']
-            Student.objects.create(user=user, **student_data)
+            student_serializer = StudentRegisterSerializer(data=student_data)
+            student_serializer.is_valid(raise_exception=True)
+            student_serializer.save(user=user)
+
         elif role == 'tutor':
             tutor_data = validated_data['tutor_data']
-            Tutor.objects.create(user=user, **tutor_data)
+            tutor_serializer = TutorAddSerializer(data=tutor_data)
+            tutor_serializer.is_valid(raise_exception=True)
+            tutor_serializer.save(user=user)
 
         return user
 
