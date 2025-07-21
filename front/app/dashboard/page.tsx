@@ -78,7 +78,7 @@ export default function Dashboard() {
             TutorHub
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-gray-600">Welcome, {user?.full_name || user?.name}</span>
+            <span className="text-gray-600">Welcome, {user?.username}</span>
             <Button
               onClick={handleLogout}
               variant="outline"
@@ -93,26 +93,52 @@ export default function Dashboard() {
       {/* Dashboard Content */}
       <main className="max-w-7xl mx-auto px-6 py-16">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-black mb-4">
-            Welcome to your Dashboard, {user?.full_name || user?.name}!
-          </h1>
-          <p className="text-xl text-gray-600">You're logged in as a {user?.user_type || "user"}</p>
+          <h1 className="text-4xl font-bold text-black mb-4">Welcome to your Dashboard, {user?.username}!</h1>
+          <p className="text-xl text-gray-600">Manage your teaching and learning activities</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div className="text-center p-8 border border-gray-200 rounded-lg">
-            <h3 className="text-xl font-bold text-black mb-4">My Courses</h3>
-            <p className="text-gray-600 mb-4">View and manage your enrolled courses</p>
-            <Button className="bg-black text-white hover:bg-gray-800">View Courses</Button>
+            <div className="text-4xl mb-4">📚</div>
+            <h3 className="text-xl font-bold text-black mb-4">My Classrooms</h3>
+            <p className="text-gray-600 mb-4">View and manage your classrooms</p>
+            <Link href="/classroom">
+              <Button className="bg-black text-white hover:bg-gray-800">View Classrooms</Button>
+            </Link>
           </div>
 
           <div className="text-center p-8 border border-gray-200 rounded-lg">
+            <div className="text-4xl mb-4">➕</div>
+            <h3 className="text-xl font-bold text-black mb-4">Create Classroom</h3>
+            <p className="text-gray-600 mb-4">Start a new teaching session</p>
+            <Link href="/classroom/create">
+              <Button className="bg-black text-white hover:bg-gray-800">Create Classroom</Button>
+            </Link>
+          </div>
+
+          <div className="text-center p-8 border border-gray-200 rounded-lg">
+            <div className="text-4xl mb-4">💬</div>
             <h3 className="text-xl font-bold text-black mb-4">Messages</h3>
-            <p className="text-gray-600 mb-4">Connect with tutors and classmates</p>
+            <p className="text-gray-600 mb-4">Connect with tutors and students</p>
             <Button className="bg-black text-white hover:bg-gray-800">Open Messages</Button>
           </div>
 
           <div className="text-center p-8 border border-gray-200 rounded-lg">
+            <div className="text-4xl mb-4">👥</div>
+            <h3 className="text-xl font-bold text-black mb-4">Students</h3>
+            <p className="text-gray-600 mb-4">Manage your student roster</p>
+            <Button className="bg-black text-white hover:bg-gray-800">View Students</Button>
+          </div>
+
+          <div className="text-center p-8 border border-gray-200 rounded-lg">
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-xl font-bold text-black mb-4">Analytics</h3>
+            <p className="text-gray-600 mb-4">Track progress and performance</p>
+            <Button className="bg-black text-white hover:bg-gray-800">View Analytics</Button>
+          </div>
+
+          <div className="text-center p-8 border border-gray-200 rounded-lg">
+            <div className="text-4xl mb-4">⚙️</div>
             <h3 className="text-xl font-bold text-black mb-4">Profile</h3>
             <p className="text-gray-600 mb-4">Update your account settings</p>
             <Button className="bg-black text-white hover:bg-gray-800">Edit Profile</Button>

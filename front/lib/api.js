@@ -16,18 +16,20 @@ export const api = {
         // Create FormData for endpoints that expect form-data
         body = new FormData()
         Object.keys(data).forEach((key) => {
-          body.append(key, data[key])
+          if (Array.isArray(data[key])) {
+            // Handle arrays (like students)
+            data[key].forEach((item) => {
+              body.append(key, item)
+            })
+          } else {
+            body.append(key, data[key])
+          }
         })
-        // Don't set Content-Type header - let browser set it with boundary
       } else {
         // Use JSON for other endpoints
         headers["Content-Type"] = "application/json"
         body = JSON.stringify(data)
       }
-
-      console.log(`Making POST request to: ${API_BASE_URL}${endpoint}`)
-      console.log("Request data:", data)
-      console.log("Using FormData:", useFormData)
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
@@ -38,7 +40,6 @@ export const api = {
       const result = await response.json()
 
       if (!response.ok) {
-        // Handle different error formats from Django
         const errorMessage =
           result.detail ||
           result.message ||
@@ -85,9 +86,8 @@ export const api = {
     }
   },
 
-  // Auth endpoints matching your Django URLs
+  // Auth endpoints
   auth: {
-    // Login using JWT token endpoint - using form-data as expected by Django
     login: (credentials) =>
       api.post(
         "/auth/login/",
@@ -96,22 +96,13 @@ export const api = {
           password: credentials.password,
         },
         null,
-        true, // Use form-data
+        true,
       ),
 
-    // Register using role-based registration - might also need form-data
-    register: (userData) =>
-      api.post(
-        "/auth/register/",
-        userData,
-        null,
-        true, // Use form-data, change to false if your register endpoint expects JSON
-      ),
+    register: (userData) => api.post("/auth/register/", userData, null, true),
 
-    // Get current user info
     me: (token) => api.get("/auth/me/", token),
 
-    // Refresh JWT token - might need form-data too
     refreshToken: (refreshToken) =>
       api.post(
         "/auth/token/refresh/",
@@ -119,8 +110,31 @@ export const api = {
           refresh: refreshToken,
         },
         null,
-        true, // Use form-data
+        true,
       ),
+  },
+
+  // Classroom endpoints
+  classroom: {
+    create: (classroomData, token) => api.post("/classroom/register/", classroomData, token, false),
+
+    list: (token) => api.get("/classroom/", token),
+
+    get: (id, token) => api.get(`/classroom/${id}/`, token),
+  },
+
+  // Students endpoints (you'll need to create these in Django)
+  students: {
+    list: (token) => api.get("/students/", token),
+
+    get: (id, token) => api.get(`/students/${id}/`, token),
+  },
+
+  // Tutors endpoints
+  tutors: {
+    list: (token) => api.get("/tutors/", token),
+
+    get: (id, token) => api.get(`/tutors/${id}/`, token),
   },
 }
 
