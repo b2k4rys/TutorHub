@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from students.models import StudentProfile
+from students.models import Student
 
 class ClassroomSubjects(models.TextChoices):
     math = 'MATH'
@@ -23,7 +23,7 @@ class Classroom(models.Model):
     )
 
     tutor = models.ForeignKey("tutors.Tutor", on_delete=models.CASCADE)
-    students = models.ManyToManyField(StudentProfile, related_name='classrooms', blank=True, null=True)
+    students = models.ManyToManyField(Student, related_name='classrooms', blank=True, null=True)
 
     def __str__(self):
         return f"{self.tutor} class"

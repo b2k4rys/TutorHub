@@ -1,9 +1,9 @@
 from rest_framework import serializers
-from .models import StudentProfile
-class StudentProfileRegisterSerializer(serializers.ModelSerializer):
+from .models import Student
+class StudentRegisterSerializer(serializers.ModelSerializer):
     
     class Meta:
-        model = StudentProfile 
+        model = Student
         fields = ['user', 'grade', 'school_name']
         read_only_fields = ['user']
 

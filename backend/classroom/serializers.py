@@ -1,11 +1,11 @@
 from rest_framework import serializers
 from .models import Classroom
-from students.models import StudentProfile
+from students.models import Student
 
 class ClassroomSerializer(serializers.ModelSerializer):
     students = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=StudentProfile.objects.all(),
+        queryset=Student.objects.all(),
         required=True
     )
 

@@ -2,7 +2,7 @@ from django.shortcuts import render
 
 # Create your views here.
 from rest_framework import generics, permissions, views
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, RoleBasedUserSerializer
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 
@@ -29,3 +29,7 @@ class RequestDataView(views.APIView):
             "data": request.data,
             "headers": request.headers
         })
+    
+class RoleBasedRegistrationView(generics.CreateAPIView):
+    serializer_class = RoleBasedUserSerializer
+    
