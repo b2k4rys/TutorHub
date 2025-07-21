@@ -17,7 +17,7 @@ export const api = {
         body = new FormData()
         Object.keys(data).forEach((key) => {
           if (Array.isArray(data[key])) {
-            // Handle arrays (like students)
+            // Handle arrays (like student_usernames)
             data[key].forEach((item) => {
               body.append(key, item)
             })
@@ -43,6 +43,7 @@ export const api = {
         const errorMessage =
           result.detail ||
           result.message ||
+          result.error ||
           result.non_field_errors?.[0] ||
           Object.values(result)[0]?.[0] ||
           "Something went wrong"
@@ -121,9 +122,20 @@ export const api = {
     list: (token) => api.get("/classroom/", token),
 
     get: (id, token) => api.get(`/classroom/${id}/`, token),
+
+    // Check if student username exists
+    checkStudent: (username, token) =>
+      api.post(
+        "/tutors/check/",
+        {
+          student_username: username,
+        },
+        token,
+        false,
+      ),
   },
 
-  // Students endpoints (you'll need to create these in Django)
+  // Students endpoints
   students: {
     list: (token) => api.get("/students/", token),
 

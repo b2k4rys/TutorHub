@@ -13,16 +13,15 @@ class ClassroomSerializer(serializers.ModelSerializer):
     students = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=Student.objects.all(),
-        read_only=True
     )
 
     class Meta:
         model = Classroom
         fields = ['subject', 'classroom_type', 'tutor', 'student_usernames', 'students']
-        read_only_fields = ['tutor', 'students']
-
+        read_only_fields = ['tutor']
     def create(self, validated_data):
         student_usernames = validated_data.pop("student_usernames")
+        validated_data.pop("students", None)  
 
         students = Student.objects.filter(user__username__in=student_usernames)
 
