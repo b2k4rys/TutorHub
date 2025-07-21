@@ -45,6 +45,7 @@ export const api = {
           result.message ||
           result.error ||
           result.non_field_errors?.[0] ||
+          result.student_usernames?.[0] ||
           Object.values(result)[0]?.[0] ||
           "Something went wrong"
         throw new Error(errorMessage)
@@ -119,14 +120,15 @@ export const api = {
   classroom: {
     create: (classroomData, token) => api.post("/classroom/register/", classroomData, token, false),
 
-    list: (token) => api.get("/classroom/", token),
+    // Updated to use the correct endpoint
+    list: (token) => api.get("/classroom/all/", token),
 
     get: (id, token) => api.get(`/classroom/${id}/`, token),
 
     // Check if student username exists
     checkStudent: (username, token) =>
       api.post(
-        "/tutors/check/",
+        "/classroom/check/",
         {
           student_username: username,
         },

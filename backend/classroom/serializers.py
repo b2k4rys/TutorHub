@@ -19,6 +19,7 @@ class ClassroomSerializer(serializers.ModelSerializer):
         model = Classroom
         fields = ['subject', 'classroom_type', 'tutor', 'student_usernames', 'students']
         read_only_fields = ['tutor']
+        
     def create(self, validated_data):
         student_usernames = validated_data.pop("student_usernames")
         validated_data.pop("students", None)  

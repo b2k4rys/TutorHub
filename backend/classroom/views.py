@@ -1,4 +1,4 @@
-from rest_framework.generics import CreateAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from .models import Classroom
 from .serializers import ClassroomSerializer
@@ -13,3 +13,13 @@ class ClassroomCreateView(CreateAPIView):
     def perform_create(self, serializer):
         tutor = Tutor.objects.get(user=self.request.user)
         serializer.save(tutor=tutor)
+
+class ClassroomView(ListAPIView):
+    serializer_class = ClassroomSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        tutor = Tutor.objects.filter(user=self.request.user).first()
+        if not tutor:
+            return Classroom.objects.none()  
+        return Classroom.objects.filter(tutor=tutor)
