@@ -7,11 +7,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField(required=True, allow_blank=False)
     first_name = serializers.CharField(required=True, allow_blank=False)
-    second_name = serializers.CharField(required=True, allow_blank=False)
+    last_name = serializers.CharField(required=True, allow_blank=False)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'first_name', 'second_name']
+        fields = ['username', 'email', 'password', 'first_name', 'last_name']
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
@@ -51,7 +51,12 @@ class RoleBasedUserSerializer(serializers.Serializer):
             tutor_serializer.is_valid(raise_exception=True)
             tutor_serializer.save(user=user)
 
-        return user
+        return {
+            "user": user,
+            "role": role,
+            "student_data": validated_data.get("student_data"),
+            "tutor_data": validated_data.get("tutor_data"),
+        }
 
 
 
