@@ -2,21 +2,37 @@ const API_BASE_URL = "http://localhost:8000/api"
 
 // API utility functions
 export const api = {
-  // POST request helper
-  post: async (endpoint, data, token = null) => {
+  // POST request helper with form-data support
+  post: async (endpoint, data, token = null, useFormData = false) => {
     try {
-      const headers = {
-        "Content-Type": "application/json",
-      }
+      const headers = {}
 
       if (token) {
         headers.Authorization = `Bearer ${token}`
       }
 
+      let body
+      if (useFormData) {
+        // Create FormData for endpoints that expect form-data
+        body = new FormData()
+        Object.keys(data).forEach((key) => {
+          body.append(key, data[key])
+        })
+        // Don't set Content-Type header - let browser set it with boundary
+      } else {
+        // Use JSON for other endpoints
+        headers["Content-Type"] = "application/json"
+        body = JSON.stringify(data)
+      }
+
+      console.log(`Making POST request to: ${API_BASE_URL}${endpoint}`)
+      console.log("Request data:", data)
+      console.log("Using FormData:", useFormData)
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers,
-        body: JSON.stringify(data),
+        body,
       })
 
       const result = await response.json()
@@ -71,28 +87,44 @@ export const api = {
 
   // Auth endpoints matching your Django URLs
   auth: {
-    // Login using JWT token endpoint - using username field as required by Django
+    // Login using JWT token endpoint - using form-data as expected by Django
     login: (credentials) =>
-      api.post("/auth/login/", {
-        username: credentials.username, // Use actual username, not email
-        password: credentials.password,
-      }),
+      api.post(
+        "/auth/login/",
+        {
+          username: credentials.username,
+          password: credentials.password,
+        },
+        null,
+        true, // Use form-data
+      ),
 
-    // Register using role-based registration
-    register: (userData) => api.post("/auth/register/", userData),
+    // Register using role-based registration - might also need form-data
+    register: (userData) =>
+      api.post(
+        "/auth/register/",
+        userData,
+        null,
+        true, // Use form-data, change to false if your register endpoint expects JSON
+      ),
 
     // Get current user info
     me: (token) => api.get("/auth/me/", token),
 
-    // Refresh JWT token
+    // Refresh JWT token - might need form-data too
     refreshToken: (refreshToken) =>
-      api.post("/auth/token/refresh/", {
-        refresh: refreshToken,
-      }),
+      api.post(
+        "/auth/token/refresh/",
+        {
+          refresh: refreshToken,
+        },
+        null,
+        true, // Use form-data
+      ),
   },
 }
 
-// Local storage helpers
+// Local storage helpers (unchanged)
 export const storage = {
   setTokens: (accessToken, refreshToken) => {
     if (typeof window !== "undefined") {
@@ -142,7 +174,6 @@ export const storage = {
     }
   },
 
-  // Clear all stored data
   clearAll: () => {
     storage.removeTokens()
     storage.removeUser()
@@ -161,7 +192,6 @@ export const refreshAccessToken = async () => {
     storage.setTokens(response.access, refreshToken)
     return response.access
   } catch (error) {
-    // If refresh fails, clear all tokens and redirect to login
     storage.clearAll()
     throw error
   }
