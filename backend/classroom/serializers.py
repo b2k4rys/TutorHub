@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from .models import Classroom
 from students.models import Student
-from django.contrib.auth.models import User
+
 
 class ClassroomSerializer(serializers.ModelSerializer):
-    # Accept usernames instead of student IDs
+
     student_usernames = serializers.ListField(
         child=serializers.CharField(),
         write_only=True
