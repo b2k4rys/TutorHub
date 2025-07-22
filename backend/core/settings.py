@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'students',
     'tutors',
     'classroom',
-    'homeworks'
+    'homeworks',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -152,5 +153,6 @@ CORS_ORIGIN_WHITELIST = ['http://localhost:5173']
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
