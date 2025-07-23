@@ -7,7 +7,7 @@ class HomeworkClassroomAssign(models.Model):
     description = models.TextField(blank=True)
     classroom = models.ForeignKey("classroom.Classroom", on_delete=models.CASCADE)
     assigned_by = models.ForeignKey("tutors.Tutor", on_delete=models.CASCADE)
-    due_date = models.DateField()
+    due_date = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
     attachment = models.FileField(upload_to='homework_attachments/', blank=True, null=True)
     is_optional = models.BooleanField(default=False)
