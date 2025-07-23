@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import HomeworkClassroomAssign, HomeworkSubmission
+from django.core.validators import MaxValueValidator, MinValueValidator 
 class HomeworkCreateSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ['title', 'description', 'due_date', 'attachment', 'is_optional']
@@ -26,3 +27,14 @@ class HomeworkSubmitSerializer(serializers.ModelSerializer):
             student=student,
             **validated_data
         )
+    
+class HomeworkGradeSerializer(serializers.Serializer):
+    score = serializers.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
+    feedback = serializers.CharField(allow_blank=True)
+
+    def validate(self, attrs):
+        score = attrs['grade']
+        if score % 1 != 0:
+            raise serializers.ValidationError("Grade must be a whole number")
+        return attrs
+    
