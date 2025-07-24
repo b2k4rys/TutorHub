@@ -1,10 +1,12 @@
 from rest_framework.views import APIView
-from .serializers import TutorAddSerializer
+from .serializers import TutorAddSerializer, TutorDetailViewSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import permissions
 from .models import Tutor
 from students.models import Student
+from classroom.models import Classroom
+from rest_framework import exceptions
 class TutorAddView(APIView):
 
     def post(self, request):
@@ -49,4 +51,30 @@ class TutorCheckStudent(APIView):
             status=status.HTTP_200_OK
         )
 
+class TutorDetailView(APIView):
+
+    def get(self, request, *args, **kwards):
+        user = self.request.user
+        tutor_id = self.kwargs.get('tutor_id')
+
+        try:
+            tutor = Tutor.objects.get(id=tutor_id)
+            if tutor.user == user:
+                serializer = TutorDetailViewSerializer(tutor)
+                return Response(serializer.data)
+
+        except Tutor.DoesNotExist:
+            raise exceptions.NotFound('such tutor does not exist')
         
+        
+        try:
+            student = Student.objects.get(user=user)
+            try:
+                classroom = Classroom.objects.get(students=student, tutor=tutor)
+            except Classroom.DoesNotExist:
+                raise exceptions.PermissionDenied("Must be a student of this classroom to view details")
+        except Student.DoesNotExist:
+            raise exceptions.PermissionDenied("Must be a student")
+        serializer = TutorDetailViewSerializer(tutor)
+        
+        return Response(serializer.data)
