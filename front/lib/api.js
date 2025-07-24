@@ -171,10 +171,10 @@ export const api = {
   tutors: {
     list: (token) => api.get("/tutors/", token),
 
-    get: (id, token) => api.get(`/tutors/${id}/`, token),
+    get: (id, token) => api.get(`/tutors/${id}`, token),
 
     // Tutor detail endpoint with better error handling
-    getDetail: (tutorId, token) => api.get(`/tutors/details/${tutorId}/`, token),
+    getDetail: (tutorId, token) => api.get(`/tutors/details/${tutorId}`, token),
   },
 }
 
