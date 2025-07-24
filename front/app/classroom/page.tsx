@@ -188,12 +188,14 @@ export default function ClassroomList() {
                 )}
 
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 border-black text-black hover:bg-black hover:text-white bg-transparent"
-                  >
-                    View Details
-                  </Button>
+                  <Link href={`/classroom/${classroom.id}`} className="flex-1">
+                    <Button
+                      variant="outline"
+                      className="w-full border-black text-black hover:bg-black hover:text-white bg-transparent"
+                    >
+                      View Details
+                    </Button>
+                  </Link>
                   <Button className="flex-1 bg-black text-white hover:bg-gray-800">Manage</Button>
                 </div>
               </div>

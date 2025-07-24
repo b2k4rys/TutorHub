@@ -17,7 +17,7 @@ class ClassroomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Classroom
-        fields = ['subject', 'classroom_type', 'tutor', 'student_usernames', 'students']
+        fields = ['id', 'subject', 'classroom_type', 'tutor', 'student_usernames', 'students']
         read_only_fields = ['tutor']
         
     def create(self, validated_data):

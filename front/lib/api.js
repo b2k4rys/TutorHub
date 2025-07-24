@@ -123,6 +123,7 @@ export const api = {
     // Updated to use the correct endpoint
     list: (token) => api.get("/classroom/all/", token),
 
+    // Updated for classroom detail - using classroom_id parameter
     get: (id, token) => api.get(`/classroom/${id}/`, token),
 
     // Check if student username exists
