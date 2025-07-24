@@ -36,3 +36,28 @@ class ClassroomSerializer(serializers.ModelSerializer):
         classroom = Classroom.objects.create(**validated_data)
         classroom.students.set(students)
         return classroom
+
+class StudentClassroomDetailSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username')
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+
+    class Meta:
+        model = Student
+        fields = ['id', 'username', 'first_name', 'last_name']
+
+class TutorClassroomDetailSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username')
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+
+    class Meta:
+        model = Student
+        fields = ['id', 'username', 'first_name', 'last_name']
+
+class ClassroomDetailSerializer(serializers.ModelSerializer):
+    students = StudentClassroomDetailSerializer(many=True)
+    tutor = TutorClassroomDetailSerializer()
+    class Meta:
+        model = Classroom
+        fields = ['id', 'subject', 'classroom_type', 'students', 'tutor']
