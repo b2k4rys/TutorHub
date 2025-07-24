@@ -37,6 +37,12 @@ export const api = {
         body,
       })
 
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = response.headers.get("content-type")
+      if (contentType && contentType.includes("text/html")) {
+        throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`)
+      }
+
       const result = await response.json()
 
       if (!response.ok) {
@@ -58,7 +64,7 @@ export const api = {
     }
   },
 
-  // GET request helper
+  // GET request helper with better error handling
   get: async (endpoint, token = null) => {
     try {
       const headers = {
@@ -69,15 +75,31 @@ export const api = {
         headers.Authorization = `Bearer ${token}`
       }
 
+      console.log(`Making GET request to: ${API_BASE_URL}${endpoint}`)
+      console.log("Headers:", headers)
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "GET",
         headers,
       })
 
+      console.log("Response status:", response.status)
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()))
+
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = response.headers.get("content-type")
+      if (contentType && contentType.includes("text/html")) {
+        const htmlText = await response.text()
+        console.error("Received HTML instead of JSON:", htmlText.substring(0, 200))
+        throw new Error(
+          `Server returned HTML instead of JSON. Status: ${response.status}. Check CORS settings and authentication.`,
+        )
+      }
+
       const result = await response.json()
 
       if (!response.ok) {
-        const errorMessage = result.detail || result.message || "Something went wrong"
+        const errorMessage = result.detail || result.message || `HTTP ${response.status}: ${response.statusText}`
         throw new Error(errorMessage)
       }
 
@@ -120,13 +142,10 @@ export const api = {
   classroom: {
     create: (classroomData, token) => api.post("/classroom/register/", classroomData, token, false),
 
-    // Updated to use the correct endpoint
     list: (token) => api.get("/classroom/all/", token),
 
-    // Updated for classroom detail - using classroom_id parameter
     get: (id, token) => api.get(`/classroom/${id}/`, token),
 
-    // Check if student username exists
     checkStudent: (username, token) =>
       api.post(
         "/classroom/check/",
@@ -143,6 +162,9 @@ export const api = {
     list: (token) => api.get("/students/", token),
 
     get: (id, token) => api.get(`/students/${id}/`, token),
+
+    // Student detail endpoint
+    getDetail: (studentId, token) => api.get(`/students/details/${studentId}/`, token),
   },
 
   // Tutors endpoints
@@ -150,6 +172,9 @@ export const api = {
     list: (token) => api.get("/tutors/", token),
 
     get: (id, token) => api.get(`/tutors/${id}/`, token),
+
+    // Tutor detail endpoint with better error handling
+    getDetail: (tutorId, token) => api.get(`/tutors/details/${tutorId}/`, token),
   },
 }
 

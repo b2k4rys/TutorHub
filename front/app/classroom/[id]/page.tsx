@@ -185,12 +185,14 @@ export default function ClassroomDetail() {
                 </div>
               </div>
               <div className="mt-6 pt-4 border-t border-gray-200">
-                <Button
-                  variant="outline"
-                  className="w-full border-black text-black hover:bg-black hover:text-white bg-transparent"
-                >
-                  View Profile
-                </Button>
+                <Link href={`/tutor/${classroom.tutor.id}`}>
+                  <Button
+                    variant="outline"
+                    className="w-full border-black text-black hover:bg-black hover:text-white bg-transparent"
+                  >
+                    View Profile
+                  </Button>
+                </Link>
               </div>
             </div>
 
@@ -253,13 +255,15 @@ export default function ClassroomDetail() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-black text-black hover:bg-black hover:text-white bg-transparent"
-                        >
-                          View Profile
-                        </Button>
+                        <Link href={`/student/${student.id}`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-black text-black hover:bg-black hover:text-white bg-transparent"
+                          >
+                            View Profile
+                          </Button>
+                        </Link>
                         <Button
                           variant="outline"
                           size="sm"
