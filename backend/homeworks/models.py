@@ -30,3 +30,9 @@ class HomeworkSubmission(models.Model):
     file = models.FileField(upload_to='submissions/', null=True, blank=True)
     score = models.IntegerField(null=True, blank=True)
     feedback = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.student.user.username}'s homework ({self.homework})"
+    
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['student', 'homework'], name='unique_student_homework')]

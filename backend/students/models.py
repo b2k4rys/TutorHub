@@ -12,4 +12,6 @@ class Student(models.Model):
     def __str__(self):
         return f"Student {self.user.first_name}"
     
+    
+    
 
