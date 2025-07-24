@@ -5,7 +5,7 @@ from tutors.models import Tutor
 from students.models import Student
 from rest_framework.exceptions import NotFound
 from rest_framework.generics import CreateAPIView
-from .models import HomeworkSubmission
+from .models import HomeworkSubmission, HomeworkClassroomAssign
 from .serialziers import HomeworkGradeSerializer
 from rest_framework.response import Response
 # from django.contrib.auth.models import User
@@ -33,6 +33,14 @@ class HomeworkSubmitView(CreateAPIView):
             student = Student.objects.get(user=self.request.user)
         except Student.DoesNotExist:
             raise NotFound("not found student")
+        homework_id = self.kwargs.get('homework_id')
+        try:
+            homework = HomeworkClassroomAssign.objects.get(id=homework_id)
+        except HomeworkClassroomAssign.DoesNotExist:
+            raise NotFound("not found homework")
+        
+        if homework:
+            context["homework_id"] = homework_id
         context['student'] = student
         return context
 
