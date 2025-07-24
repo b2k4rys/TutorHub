@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import HomeworkClassroomAssign, HomeworkSubmission
 from django.core.validators import MaxValueValidator, MinValueValidator 
+from datetime import datetime
 from django.utils import timezone
 class HomeworkCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,11 +18,13 @@ class HomeworkCreateSerializer(serializers.ModelSerializer):
 class HomeworkSubmitSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ['file']
+        model = HomeworkSubmission
     
     def create(self, validated_data):
         student = self.context['student']
-        homework= self.context['homework']
-        now = timezone.now().date()
+        homework = self.context['homework']
+        now = timezone.now()
+ 
         if now <= homework.due_date:
             status = 'on_time'
         else:
