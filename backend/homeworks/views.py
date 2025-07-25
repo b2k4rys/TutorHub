@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.generics import CreateAPIView
 from rest_framework import exceptions
 from .models import HomeworkSubmission, HomeworkClassroomAssign
-from .serialziers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer, HomeworkCreateSerializer
+from .serialziers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer, HomeworkCreateSerializer, HomeworkViewSubmissionsSerializer
 from rest_framework.response import Response
 from classroom.models import Classroom
 # from django.contrib.auth.models import User
@@ -112,4 +112,37 @@ class HomeworksView(APIView):
             return Response(serializer.data)
         
             
+
+class HomeworkViewSubmissions(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+        classroom_id = self.kwargs.get('classroom_id')
+        homework_id = self.kwargs.get('assigned_homework_id')
+
+
+        try:
+            classroom = Classroom.objects.get(id=classroom_id)
+        except Classroom.DoesNotExist:
+            raise NotFound("Classroom not found")
+
+        try:
+            homework = HomeworkClassroomAssign.objects.get(id=homework_id)
+        except HomeworkClassroomAssign.DoesNotExist:
+            raise NotFound("Classroom not found")
+        
+        
+        try:
+            tutor = Tutor.objects.get(user=user)
+            try:
+                classroom.tutor = tutor
+            except Tutor.DoesNotExist:
+                raise exceptions.PermissionDenied("Not tutor of this classroom")
+            
+            homework_submissions = HomeworkSubmission.objects.filter(homework=homework)
+            serializer = HomeworkViewSubmissionsSerializer(homework_submissions, many=True)
+            return Response(serializer.data)
+        except Tutor.DoesNotExist:
+            raise exceptions.PermissionDenied("Not tutor of this classroom")
 

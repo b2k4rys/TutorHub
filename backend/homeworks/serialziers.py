@@ -60,3 +60,8 @@ class HomeworksViewSerializer(serializers.ModelSerializer):
         model = HomeworkClassroomAssign
         fields = ['id', 'title', 'description', 'due_date', 'attachment', 'is_optional']
     
+class HomeworkViewSubmissionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HomeworkSubmission
+        fields = ['id', 'student', 'submitted_at', 'status', 'file', 'score', 'feedback']
+    
