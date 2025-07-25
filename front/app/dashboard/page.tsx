@@ -108,6 +108,15 @@ export default function Dashboard() {
           </div>
 
           <div className="text-center p-8 border border-gray-200 rounded-lg">
+            <div className="text-4xl mb-4">📝</div>
+            <h3 className="text-xl font-bold text-black mb-4">My Homeworks</h3>
+            <p className="text-gray-600 mb-4">View and submit your assignments</p>
+            <Link href="/homeworks">
+              <Button className="bg-black text-white hover:bg-gray-800">View Homeworks</Button>
+            </Link>
+          </div>
+
+          <div className="text-center p-8 border border-gray-200 rounded-lg">
             <div className="text-4xl mb-4">➕</div>
             <h3 className="text-xl font-bold text-black mb-4">Create Classroom</h3>
             <p className="text-gray-600 mb-4">Start a new teaching session</p>

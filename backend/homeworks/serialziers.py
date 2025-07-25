@@ -52,3 +52,8 @@ class HomeworkGradeSerializer(serializers.Serializer):
             raise serializers.ValidationError("Grade must be a whole number")
         return attrs
     
+class HomeworksViewSerializer(serializers.ModelSerializer):
+    class  Meta:
+        model = HomeworkClassroomAssign
+        fields = ['id', 'title', 'description', 'due_date', 'attachment', 'is_optional']
+    

@@ -171,10 +171,25 @@ export const api = {
   tutors: {
     list: (token) => api.get("/tutors/", token),
 
-    get: (id, token) => api.get(`/tutors/${id}`, token),
+    get: (id, token) => api.get(`/tutors/${id}/`, token),
 
     // Tutor detail endpoint with better error handling
-    getDetail: (tutorId, token) => api.get(`/tutors/details/${tutorId}`, token),
+    getDetail: (tutorId, token) => api.get(`/tutors/details/${tutorId}/`, token),
+  },
+
+  // Homework endpoints
+  homeworks: {
+    // List all homeworks (assuming there's a list endpoint)
+    list: (token) => api.get("/homeworks/", token),
+
+    // Get specific homework details
+    get: (id, token) => api.get(`/homeworks/${id}/`, token),
+
+    // Submit homework (if needed later)
+    submit: (homeworkData, token) => api.post("/homeworks/submit/", homeworkData, token, true),
+
+    // Grade homework (if needed later)
+    grade: (homeworkData, token) => api.post("/homeworks/grade/", homeworkData, token, false),
   },
 }
 

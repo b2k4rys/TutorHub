@@ -5,9 +5,11 @@ from tutors.models import Tutor
 from students.models import Student
 from rest_framework.exceptions import NotFound
 from rest_framework.generics import CreateAPIView
+from rest_framework import exceptions
 from .models import HomeworkSubmission, HomeworkClassroomAssign
-from .serialziers import HomeworkGradeSerializer, HomeworkSubmitSerializer
+from .serialziers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer
 from rest_framework.response import Response
+from classroom.models import Classroom
 # from django.contrib.auth.models import User
 # Create your views here.
 
@@ -70,4 +72,36 @@ class HomeworkGrade(APIView):
         submission.save()
 
         return Response({"message": "Grade submitted successfully"}, status=status.HTTP_200_OK)
+
+
+class HomeworksView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+        classroom_id = self.kwargs.get('classroom_id')
+        try:
+            classroom = Classroom.objects.get(id=classroom_id)
+        except Classroom.DoesNotExist:
+            raise NotFound("Classroom not found")
+        
+        try:
+            tutor = Tutor.objects.get(user=user)
+            try:
+                classroom.tutor = tutor
+            except Tutor.DoesNotExist:
+                raise exceptions.PermissionDenied("Not tutor of this classroom")
+            homeworks = HomeworkClassroomAssign.objects.all()
+            serializer = HomeworksViewSerializer(homeworks, many=True)
+            return Response(serializer.data)
+        except Tutor.DoesNotExist:
+            student = Student.objects.get(user=user)
+            try:
+                classroom.students = student
+            except Student.DoesNotExist:
+                raise exceptions.PermissionDenied("Not student of this classroom")
+            homeworks = HomeworkClassroomAssign.objects.all()
+            serializer = HomeworksViewSerializer(homeworks, many=True)
+            return Response(serializer.data)
+        
+            
 
