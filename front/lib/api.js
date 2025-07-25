@@ -182,6 +182,9 @@ export const api = {
     // List all homeworks (assuming there's a list endpoint)
     list: (token) => api.get("/homeworks/", token),
 
+    // Get homeworks for a specific classroom
+    getByClassroom: (classroomId, token) => api.get(`/homeworks/classroom/${classroomId}/`, token),
+
     // Get specific homework details
     get: (id, token) => api.get(`/homeworks/${id}/`, token),
 

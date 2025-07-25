@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.generics import CreateAPIView
 from rest_framework import exceptions
 from .models import HomeworkSubmission, HomeworkClassroomAssign
-from .serialziers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer
+from .serialziers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer, HomeworkCreateSerializer
 from rest_framework.response import Response
 from classroom.models import Classroom
 # from django.contrib.auth.models import User
@@ -16,14 +16,22 @@ from classroom.models import Classroom
 
 class HomeworkCreateView(CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = HomeworkCreateSerializer
     
-    def get_serializer_context(self):
+    def get_serializer_context(self, *args, **kwargs):
         context = super().get_serializer_context()
         try:
             tutor = Tutor.objects.get(user=self.request.user)
         except Tutor.DoesNotExist:
             raise NotFound("not found tutor")
+        classroom_id = self.kwargs.get('classroom_id')
+        try:
+            classroom = Classroom.objects.get(id=classroom_id)
+        except Classroom.DoesNotExist:
+            raise NotFound("not found such classroom")
         context['tutor'] = tutor
+        context['classroom'] = classroom
+
         return context
 
 class HomeworkSubmitView(CreateAPIView):

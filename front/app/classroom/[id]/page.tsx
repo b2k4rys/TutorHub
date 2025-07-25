@@ -279,12 +279,20 @@ export default function ClassroomDetail() {
             </div>
 
             {/* Actions Section */}
-            <div className="grid md:grid-cols-2 gap-4 mt-6">
+            <div className="grid md:grid-cols-3 gap-4 mt-6">
               <div className="border border-gray-200 rounded-lg p-6 text-center">
                 <div className="text-3xl mb-3">📝</div>
-                <h3 className="font-bold text-black mb-2">Assignments</h3>
-                <p className="text-gray-600 text-sm mb-4">Create and manage assignments for this classroom.</p>
-                <Button className="bg-black text-white hover:bg-gray-800 w-full">View Assignments</Button>
+                <h3 className="font-bold text-black mb-2">Homeworks</h3>
+                <p className="text-gray-600 text-sm mb-4">View and manage homework assignments for this classroom.</p>
+                <Link href={`/classroom/${classroom.id}/homeworks`}>
+                  <Button className="bg-black text-white hover:bg-gray-800 w-full">View Homeworks</Button>
+                </Link>
+              </div>
+              <div className="border border-gray-200 rounded-lg p-6 text-center">
+                <div className="text-3xl mb-3">📊</div>
+                <h3 className="font-bold text-black mb-2">Analytics</h3>
+                <p className="text-gray-600 text-sm mb-4">Track student progress and performance.</p>
+                <Button className="bg-black text-white hover:bg-gray-800 w-full">View Analytics</Button>
               </div>
               <div className="border border-gray-200 rounded-lg p-6 text-center">
                 <div className="text-3xl mb-3">💬</div>

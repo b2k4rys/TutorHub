@@ -6,13 +6,16 @@ from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 class HomeworkCreateSerializer(serializers.ModelSerializer):
     class Meta:
+        model = HomeworkClassroomAssign
         fields = ['title', 'description', 'due_date', 'attachment', 'is_optional']
         read_only_fields = ['assigned_by']
 
     def create(self, validated_data):
         tutor = self.context['tutor'] 
+        classroom = self.context['classroom']
         return HomeworkClassroomAssign.objects.create(
             assigned_by=tutor,
+            classroom=classroom,
             **validated_data
         )
     
