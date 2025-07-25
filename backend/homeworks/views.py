@@ -146,3 +146,37 @@ class HomeworkViewSubmissions(APIView):
         except Tutor.DoesNotExist:
             raise exceptions.PermissionDenied("Not tutor of this classroom")
 
+
+class HomeworkViewSubmission(APIView):
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+        classroom_id = self.kwargs.get('classroom_id')
+        homework_id = self.kwargs.get('assigned_homework_id')
+        homework_submission_id = self.kwargs.get('submission_id')
+
+
+        try:
+            classroom = Classroom.objects.get(id=classroom_id)
+        except Classroom.DoesNotExist:
+            raise NotFound("Classroom not found")
+
+        try:
+            homework = HomeworkClassroomAssign.objects.get(id=homework_id)
+        except HomeworkClassroomAssign.DoesNotExist:
+            raise NotFound("Classroom not found")
+
+        try:
+            tutor = Tutor.objects.get(user=user)
+            try:
+                classroom.tutor = tutor
+            except Tutor.DoesNotExist:
+                raise exceptions.PermissionDenied("Not tutor of this classroom")
+            
+            try:
+                homework_submission = HomeworkSubmission.objects.get(id=homework_submission_id)
+            except HomeworkSubmission.DoesNotExist:
+                raise NotFound("Not found such submission")
+            serializer = HomeworkViewSubmissionsSerializer(homework_submission)
+            return Response(serializer.data)
+        except Tutor.DoesNotExist:
+            raise exceptions.PermissionDenied("Not tutor of this classroom")
