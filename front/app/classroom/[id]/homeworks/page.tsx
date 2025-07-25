@@ -205,7 +205,9 @@ export default function ClassroomHomeworks() {
                 <p className="text-gray-600">Manage homework assignments for this classroom.</p>
               </div>
               <div className="flex gap-3">
-                <Button className="bg-black text-white hover:bg-gray-800">Create New Homework</Button>
+                <Link href={`/classroom/${classroomId}/homeworks/create`}>
+                  <Button className="bg-black text-white hover:bg-gray-800">Create New Homework</Button>
+                </Link>
                 <Button
                   variant="outline"
                   className="border-black text-black hover:bg-black hover:text-white bg-transparent"
@@ -227,7 +229,11 @@ export default function ClassroomHomeworks() {
                 : "Your tutor hasn't assigned any homework for this classroom yet."}
             </p>
             {userRole === "tutor" && (
-              <Button className="bg-black text-white hover:bg-gray-800 px-8 py-3 text-lg">Create First Homework</Button>
+              <Link href={`/classroom/${classroomId}/homeworks/create`}>
+                <Button className="bg-black text-white hover:bg-gray-800 px-8 py-3 text-lg">
+                  Create First Homework
+                </Button>
+              </Link>
             )}
           </div>
         ) : (

@@ -21,7 +21,7 @@ export const api = {
             data[key].forEach((item) => {
               body.append(key, item)
             })
-          } else {
+          } else if (data[key] !== null && data[key] !== undefined) {
             body.append(key, data[key])
           }
         })
@@ -187,6 +187,10 @@ export const api = {
 
     // Get specific homework details
     get: (id, token) => api.get(`/homeworks/${id}/`, token),
+
+    // Create new homework for specific classroom (tutors only)
+    create: (classroomId, homeworkData, token) =>
+      api.post(`/homeworks/classroom/${classroomId}/assign/`, homeworkData, token, true),
 
     // Submit homework (if needed later)
     submit: (homeworkData, token) => api.post("/homeworks/submit/", homeworkData, token, true),
