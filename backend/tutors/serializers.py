@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Tutor
+from classroom.models import Classroom
 class TutorAddSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -17,3 +18,11 @@ class TutorDetailViewSerializer(serializers.ModelSerializer):
     class Meta: 
         model = Tutor
         fields = ['username', 'first_name', 'last_name', 'subject', 'description', 'phone', 'telegram_username']
+
+
+
+class ClassroomStudentsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Classroom
+        fields = ['students']

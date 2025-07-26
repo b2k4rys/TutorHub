@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-from .serializers import TutorAddSerializer, TutorDetailViewSerializer
+from .serializers import TutorAddSerializer, TutorDetailViewSerializer, ClassroomStudentsSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import permissions
@@ -7,6 +7,7 @@ from .models import Tutor
 from students.models import Student
 from classroom.models import Classroom
 from rest_framework import exceptions
+from students.serializers import StudentTutorDetailViewSerializer
 class TutorAddView(APIView):
 
     def post(self, request):
@@ -78,3 +79,35 @@ class TutorDetailView(APIView):
         serializer = TutorDetailViewSerializer(tutor)
         
         return Response(serializer.data)
+
+class TutorAllStudentsView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+        try:
+            tutor = Tutor.objects.get(user=user)
+        except Tutor.DoesNotExist:
+            raise exceptions.NotFound("Not found tutor")
+        
+        try:
+            classrooms = Classroom.objects.filter(tutor=tutor)
+        except Classroom.DoesNotExist:
+            raise exceptions.NotFound("not found classrooms of this tutor")
+
+        students = Student.objects.filter(classrooms__in=classrooms).distinct()
+
+        serializer = StudentTutorDetailViewSerializer(students, many=True)
+        return Response(serializer.data)
+        
+
+
+
+        # try:
+        #     students = Student.objects.filter(tutor=tutor).all()
+        # except Student.DoesNotExist:
+        #     raise exceptions.NotFound("not found students of this tutor")
+        
+        # student_data = StudentTutorDetailViewSerializer(students, many=True)
+        # return Response(student_data.data)
+    
+        
