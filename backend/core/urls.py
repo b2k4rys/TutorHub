@@ -30,7 +30,11 @@ urlpatterns = [
     path('api/students/', include('students.urls')),
     path('api/classroom/', include('classroom.urls')),
     path('api/tutors/', include('tutors.urls')),
-    path('api/homeworks/', include('homeworks.urls'))
+    path('api/homeworks/', include('homeworks.urls')),
+
+
+    # ROUTE FOR WEBSOCKET TESTS
+    path('test/', include('chat.urls'))
 ]
 
 

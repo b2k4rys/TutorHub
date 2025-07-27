@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><title>Chat</title></head>
+<body>
+  <h2>Chat Room</h2>
+  <ul id="chat-log"></ul>
+  <input id="chat-message-input" type="text" size="100">
+  <button id="send">Send</button>
+
+<script>
+const chatSocket = new WebSocket(
+    'ws://' + window.location.host + '/ws/chat/');
+
+chatSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const li = document.createElement("li");
+    li.textContent = data.message;
+    document.querySelector('#chat-log').appendChild(li);
+};
+
+document.querySelector('#send').onclick = function() {
+    const input = document.querySelector('#chat-message-input');
+    chatSocket.send(JSON.stringify({'message': input.value}));
+    input.value = '';
+};
+</script>
+</body>
+</html>
