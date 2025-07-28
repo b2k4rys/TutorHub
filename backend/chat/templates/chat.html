@@ -3,7 +3,11 @@
 <head><title>Chat</title></head>
 <body>
   <h2>Chat Room</h2>
-  <ul id="chat-log"></ul>
+  <ul id="chat-log">
+    {% for msg in messages %}
+      <li><strong>{{ msg.user.username }}</strong>: {{ msg.content }}</li>
+    {% endfor %}
+  </ul>
   <input id="chat-message-input" type="text" size="100">
   <button id="send">Send</button>
 
