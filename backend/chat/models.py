@@ -11,3 +11,6 @@ class Message(models.Model):
 
     def __str__(self):
         return f"[{self.room_name}] {self.user.username}: {self.content}"
+
+class Conversation(models.Model):
+    room_name = models.CharField(max_length=255, unique=True)
