@@ -34,7 +34,7 @@ urlpatterns = [
 
 
     # ROUTE FOR WEBSOCKET TESTS
-    path('test/', include('chat.urls'))
+    path('chat/', include('chat.urls'))
 ]
 
 
