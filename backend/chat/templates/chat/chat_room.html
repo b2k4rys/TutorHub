@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Chat Tester</title>
+    <style>
+        body { font-family: sans-serif; padding: 1em; }
+        #connection-details, #chat-controls { border: 1px solid #ccc; padding: 1em; margin-bottom: 1em; border-radius: 5px; }
+        input[type="text"] { width: 90%; padding: 8px; margin-bottom: 10px; }
+        button { padding: 8px 15px; }
+        #chat-log { list-style-type: none; padding: 0; margin: 0; height: 300px; overflow-y: scroll; border: 1px solid #eee; margin-bottom: 10px; }
+        #chat-log li { padding: 5px 10px; }
+        #chat-log li:nth-child(odd) { background-color: #f9f9f9; }
+        #status { font-style: italic; color: #555; }
+    </style>
+</head>
+<body>
+    <h2>WebSocket Chat Tester</h2>
+
+    <div id="connection-details">
+        <h3>1. Connection Details</h3>
+        <input type="text" id="ticket-input" placeholder="Paste your authentication ticket here">
+        <input type="text" id="user-type-input" placeholder="User type to chat with (e.g., tutor)">
+        <input type="text" id="user-id-input" placeholder="User ID to chat with (e.g., 15)">
+        <button id="connect-button">Connect</button>
+    </div>
+
+    <div id="chat-controls">
+        <h3>2. Chat</h3>
+        <p id="status">Status: Disconnected</p>
+        <ul id="chat-log"></ul>
+        <input id="chat-message-input" type="text" placeholder="Enter message..." size="100" disabled>
+        <button id="chat-message-send" disabled>Send</button>
+    </div>
+
+<script>
+    // Get references to all our HTML elements
+    const connectButton = document.querySelector('#connect-button');
+    const ticketInput = document.querySelector('#ticket-input');
+    const userTypeInput = document.querySelector('#user-type-input');
+    const userIdInput = document.querySelector('#user-id-input');
+    const statusDisplay = document.querySelector('#status');
+    const chatLog = document.querySelector('#chat-log');
+    const messageInput = document.querySelector('#chat-message-input');
+    const sendButton = document.querySelector('#chat-message-send');
+
+    let chatSocket = null;
+
+    // Function to add a message to the chat log
+    function logMessage(message, from = "System") {
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${from}:</strong> ${message}`;
+        chatLog.appendChild(li);
+        chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll
+    }
+
+    // Connect button logic
+    connectButton.onclick = function() {
+        const ticket = ticketInput.value.trim();
+        const userType = userTypeInput.value.trim();
+        const userId = userIdInput.value.trim();
+
+        if (!ticket || !userType || !userId) {
+            alert("Please fill in all connection details.");
+            return;
+        }
+
+        // Construct the WebSocket URL based on our routing.py
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = `${wsScheme}://${window.location.host}/ws/chat/${userType}/${userId}/?ticket=${ticket}`;
+        
+        statusDisplay.textContent = "Status: Connecting...";
+        console.log("Connecting to:", wsUrl);
+
+        chatSocket = new WebSocket(wsUrl);
+
+        chatSocket.onopen = function(e) {
+            statusDisplay.textContent = `Status: Connected to room with ${userType} ${userId}.`;
+            logMessage("Connection established!");
+            // Enable the chat controls
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            messageInput.focus();
+        };
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            // We now expect an object like { message: "...", sender_name: "..." }
+            logMessage(data.message, data.sender_name);
+        };
+
+        chatSocket.onclose = function(e) {
+            statusDisplay.textContent = "Status: Disconnected.";
+            console.error('Chat socket closed unexpectedly');
+            // Disable the chat controls
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+        };
+
+        chatSocket.onerror = function(err) {
+            statusDisplay.textContent = "Status: Error. Check console.";
+            console.error("WebSocket error:", err);
+        };
+    };
+
+    // Send button logic
+    sendButton.onclick = function() {
+        const message = messageInput.value;
+        if (message.trim() === '') return;
+
+        chatSocket.send(JSON.stringify({
+            'message': message
+        }));
+
+        messageInput.value = ''; // Clear the input field
+    };
+
+    // Allow sending by pressing Enter
+    messageInput.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            sendButton.click();
+        }
+    });
+
+</script>
+</body>
+</html>
