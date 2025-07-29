@@ -4,8 +4,10 @@ from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 from .models import Message
 
+
 User = get_user_model()
 class ChatConsumer(AsyncWebsocketConsumer):
+    
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f"chat_{self.room_name}"
