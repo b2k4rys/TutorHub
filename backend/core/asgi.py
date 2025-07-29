@@ -9,9 +9,11 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 import chat.routing
+from chat.middleware import TicketAuthMiddlewareStack
+
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
+    "websocket": TicketAuthMiddlewareStack(
         URLRouter(
             chat.routing.websocket_urlpatterns
         )
