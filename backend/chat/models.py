@@ -9,31 +9,48 @@ import uuid
 
 class ConversationManager(models.Manager):
     def find_or_create_private_chat(self, user1, user2):
-
+        print("\n--- [INSIDE THE MANAGER V2] ---")
+        print(f"Finding or creating chat for: {user1} (ID: {user1.pk}) AND {user2} (ID: {user2.pk})")
+    
         user1_type = ContentType.objects.get_for_model(user1)
         user2_type = ContentType.objects.get_for_model(user2)
 
+        user1_conversations = self.get_queryset().filter(
+            participants__user_content_type=user1_type, 
+            participants__user_object_id=user1.id
+        )
 
-        qs = self.get_queryset().annotate(num_participants=Count('participants')).filter(num_participants=2)
-        qs = qs.filter(participants__user_content_type=user1_type, participants__user_object_id=user1.id)
-        qs = qs.filter(participants__user_content_type=user2_type, participants__user_object_id=user2.id)
 
-        if qs.exists():
+        conversation = user1_conversations.annotate(
+            num_participants=Count('participants')
+        ).filter(
+            num_participants=2,
+            participants__user_content_type=user2_type,
+            participants__user_object_id=user2.id
+        ).first()
 
-            return qs.first(), False
+        print(f"Query found conversation: {conversation}")
+
+        if conversation:
+            print("Result: FOUND existing conversation.")
+            print("----------------------------\n")
+            return conversation, False
         else:
-            # If not, create a new one
+            print("Result: DID NOT FIND existing conversation. Creating a new one.")
             new_conversation = self.create()
             Participant.objects.create(conversation=new_conversation, user=user1)
             Participant.objects.create(conversation=new_conversation, user=user2)
+            print(f"Result: CREATED new conversation with ID: {new_conversation.id}")
+            print("----------------------------\n")
             return new_conversation, True
+        
 
 class Conversation(models.Model):
-    # This UUID will be our permanent, public-facing ID for the chat room
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    objects = ConversationManager() # Add our custom manager
+    objects = ConversationManager() 
 
     def __str__(self):
         return str(self.id)

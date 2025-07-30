@@ -1,51 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Manual Chat Tester</title>
+    <title>Chat Room</title>
     <style>
-        body { font-family: sans-serif; padding: 1em; }
-        #connection-details, #chat-controls { border: 1px solid #ccc; padding: 1em; margin-bottom: 1em; border-radius: 5px; }
-        input[type="text"] { width: 90%; padding: 8px; margin-bottom: 10px; }
-        button { padding: 8px 15px; }
-        #chat-log { list-style-type: none; padding: 0; margin: 0; height: 300px; overflow-y: scroll; border: 1px solid #eee; margin-bottom: 10px; }
-        #chat-log li { padding: 5px 10px; }
+        body { font-family: sans-serif; padding: 1em; max-width: 800px; margin: auto; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        #chat-log { list-style-type: none; padding: 0; margin: 0; height: 400px; overflow-y: scroll; border: 1px solid #ccc; margin-bottom: 10px; border-radius: 5px; }
+        #chat-log li { padding: 8px 12px; }
         #chat-log li:nth-child(odd) { background-color: #f9f9f9; }
-        #status { font-style: italic; color: #555; }
+        #chat-controls { display: flex; }
+        #chat-message-input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px 0 0 5px; }
+        #chat-message-send { padding: 10px 20px; border: 1px solid #007bff; background-color: #007bff; color: white; border-radius: 0 5px 5px 0; cursor: pointer; }
+        #status { font-style: italic; color: #555; margin-bottom: 1em; }
+        #conversation-id-display { font-size: 0.8em; color: #777; }
     </style>
 </head>
 <body>
-    <h2>WebSocket Chat Tester</h2>
+    <h2>Chat Room</h2>
+    <p id="conversation-id-display">Conversation ID: {{ conversation_id }}</p>
 
-    <div id="connection-details">
-        <h3>1. Connection Details</h3>
-        <input type="text" id="ticket-input" placeholder="Paste your authentication ticket here">
-        <input type="text" id="user-type-input" placeholder="User type to chat with (e.g., tutor)">
-        <input type="text" id="user-id-input" placeholder="User ID to chat with (e.g., 15)">
-        <button id="connect-button">Connect</button>
-    </div>
-
+    <p id="status">Status: Initializing...</p>
+    <ul id="chat-log"></ul>
     <div id="chat-controls">
-        <h3>2. Chat</h3>
-        <p id="status">Status: Disconnected</p>
-        <ul id="chat-log"></ul>
-        <input id="chat-message-input" type="text" placeholder="Enter message..." size="100" disabled>
-        <button id="chat-message-send" disabled>Send</button>
+        <input id="chat-message-input" type="text" placeholder="Enter message...">
+        <button id="chat-message-send">Send</button>
     </div>
 
 <script>
-    // Get references to all our HTML elements
-    const connectButton = document.querySelector('#connect-button');
-    const ticketInput = document.querySelector('#ticket-input');
-    const userTypeInput = document.querySelector('#user-type-input');
-    const userIdInput = document.querySelector('#user-id-input');
+    // The page now only needs to know the unique conversation ID
+    const conversationId = "{{ conversation_id }}";
+
     const statusDisplay = document.querySelector('#status');
     const chatLog = document.querySelector('#chat-log');
     const messageInput = document.querySelector('#chat-message-input');
     const sendButton = document.querySelector('#chat-message-send');
-
     let chatSocket = null;
 
-    // Function to add a message to the chat log
     function logMessage(message, from = "System") {
         const li = document.createElement("li");
         li.innerHTML = `<strong>${from}:</strong> ${message}`;
@@ -53,74 +43,76 @@
         chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll
     }
 
-    // Connect button logic
-    connectButton.onclick = function() {
-        const ticket = ticketInput.value.trim();
-        const userType = userTypeInput.value.trim();
-        const userId = userIdInput.value.trim();
-
-        if (!ticket || !userType || !userId) {
-            alert("Please fill in all connection details.");
-            return;
-        }
-
-        // Construct the WebSocket URL based on our routing.py
-        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
-        const wsUrl = `${wsScheme}://${window.location.host}/ws/chat/${userType}/${userId}/?ticket=${ticket}`;
+    // This function will get a ticket and then connect to the WebSocket
+    async function setupChat() {
+        statusDisplay.textContent = "Status: Getting authentication ticket...";
         
-        statusDisplay.textContent = "Status: Connecting...";
-        console.log("Connecting to:", wsUrl);
+        try {
+            // Step 1: Get the ticket from your API
+            const jwtToken = prompt("Please paste your JWT access token to get a ticket:");
+            if (!jwtToken) {
+                statusDisplay.textContent = "Status: Auth token not provided. Connection cancelled.";
+                return;
+            }
 
-        chatSocket = new WebSocket(wsUrl);
+            const ticketResponse = await fetch('/api/ws-ticket/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${jwtToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
 
-        chatSocket.onopen = function(e) {
-            statusDisplay.textContent = `Status: Connected to room with ${userType} ${userId}.`;
-            logMessage("Connection established!");
-            // Enable the chat controls
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-            messageInput.focus();
-        };
+            if (!ticketResponse.ok) {
+                throw new Error("Failed to get WebSocket ticket.");
+            }
 
-        chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            // We now expect an object like { message: "...", sender_name: "..." }
-            logMessage(data.message, data.sender_name);
-        };
+            const ticketData = await ticketResponse.json();
+            const ticket = ticketData.ticket;
+            
+            // Step 2: Use the ticket to connect to the correct, unique conversation URL
+            statusDisplay.textContent = "Status: Connecting to chat...";
+            const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+            const wsUrl = `${wsScheme}://${window.location.host}/ws/chat/${conversationId}/?ticket=${ticket}`;
+            
+            chatSocket = new WebSocket(wsUrl);
 
-        chatSocket.onclose = function(e) {
-            statusDisplay.textContent = "Status: Disconnected.";
-            console.error('Chat socket closed unexpectedly');
-            // Disable the chat controls
-            messageInput.disabled = true;
-            sendButton.disabled = true;
-        };
+            chatSocket.onopen = function(e) {
+                statusDisplay.textContent = `Status: Connected.`;
+                messageInput.focus();
+            };
 
-        chatSocket.onerror = function(err) {
-            statusDisplay.textContent = "Status: Error. Check console.";
-            console.error("WebSocket error:", err);
-        };
-    };
+            chatSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                logMessage(data.message, data.sender_name);
+            };
 
-    // Send button logic
+            chatSocket.onclose = function(e) {
+                statusDisplay.textContent = "Status: Disconnected.";
+            };
+
+        } catch (error) {
+            statusDisplay.textContent = `Status: Error - ${error.message}`;
+            console.error("Chat setup failed:", error);
+        }
+    }
+
     sendButton.onclick = function() {
+        if (!chatSocket) return;
         const message = messageInput.value;
         if (message.trim() === '') return;
-
-        chatSocket.send(JSON.stringify({
-            'message': message
-        }));
-
-        messageInput.value = ''; // Clear the input field
+        chatSocket.send(JSON.stringify({ 'message': message }));
+        messageInput.value = '';
     };
 
-    // Allow sending by pressing Enter
     messageInput.addEventListener('keyup', function(e) {
         if (e.key === 'Enter') {
             sendButton.click();
         }
     });
 
+    // Start the connection process when the page loads
+    setupChat();
 </script>
 </body>
 </html>
