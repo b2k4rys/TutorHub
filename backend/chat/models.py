@@ -11,38 +11,78 @@ class ConversationManager(models.Manager):
     def find_or_create_private_chat(self, user1, user2):
         print("\n--- [INSIDE THE MANAGER V2] ---")
         print(f"Finding or creating chat for: {user1} (ID: {user1.pk}) AND {user2} (ID: {user2.pk})")
+
+        user1_ct = ContentType.objects.get_for_model(user1)
+        user2_ct = ContentType.objects.get_for_model(user2)
+
+        if user1_ct == user2_ct and user1.pk == user2.pk:
+            return False
+
+        qs = self.get_queryset().annotate(num_participants=Count('participants')).filter(num_participants=2)
+
+        for convo in qs:
+            participants = convo.participants.all()
+            p_set = set((p.user_content_type_id, p.user_object_id) for p in participants)
+            need = {
+                (user1_ct.id, user1.id),
+                (user2_ct.id, user2.id),
+            }
+            if p_set == need:
+                
+                return convo, False
+
+        new_convo = self.create()
+        Participant.objects.create(conversation=new_convo, user=user1)
+        Participant.objects.create(conversation=new_convo, user=user2)
+        return new_convo, True
     
-        user1_type = ContentType.objects.get_for_model(user1)
-        user2_type = ContentType.objects.get_for_model(user2)
 
-        user1_conversations = self.get_queryset().filter(
-            participants__user_content_type=user1_type, 
-            participants__user_object_id=user1.id
-        )
+        # user1_type = ContentType.objects.get_for_model(user1)
+        # user2_type = ContentType.objects.get_for_model(user2)
+
+        # user1_conversations = self.get_queryset().filter(
+        #     participants__user_content_type=user1_type, 
+        #     participants__user_object_id=user1.id
+        # )
+
+        # user2_conversations = self.get_queryset().filter(
+        #     participants__user_content_type=user2_type, 
+        #     participants__user_object_id=user2.id
+        # )
 
 
-        conversation = user1_conversations.annotate(
-            num_participants=Count('participants')
-        ).filter(
-            num_participants=2,
-            participants__user_content_type=user2_type,
-            participants__user_object_id=user2.id
-        ).first()
+        # conversation = user1_conversations.annotate(
+        #     num_participants=Count('participants')
+        # ).filter(
+        #     num_participants=2,
+        #     participants__user_content_type=user2_type,
+        #     participants__user_object_id=user2.id
+        # ).first()
 
-        print(f"Query found conversation: {conversation}")
+        # if not conversation:
+        #     conversation = user2_conversations.annotate(
+        #         num_participants=Count('participants')
+        #     ).filter(
+        #         num_participants=2,
+        #         participants__user_content_type=user2_type,
+        #         participants__user_object_id=user2.id
+        #     ).first()
 
-        if conversation:
-            print("Result: FOUND existing conversation.")
-            print("----------------------------\n")
-            return conversation, False
-        else:
-            print("Result: DID NOT FIND existing conversation. Creating a new one.")
-            new_conversation = self.create()
-            Participant.objects.create(conversation=new_conversation, user=user1)
-            Participant.objects.create(conversation=new_conversation, user=user2)
-            print(f"Result: CREATED new conversation with ID: {new_conversation.id}")
-            print("----------------------------\n")
-            return new_conversation, True
+
+        # print(f"Query found conversation: {conversation}")
+
+        # if conversation:
+        #     print("Result: FOUND existing conversation.")
+        #     print("----------------------------\n")
+        #     return conversation, False
+        # else:
+        #     print("Result: DID NOT FIND existing conversation. Creating a new one.")
+        #     new_conversation = self.create()
+        #     Participant.objects.create(conversation=new_conversation, user=user1)
+        #     Participant.objects.create(conversation=new_conversation, user=user2)
+        #     print(f"Result: CREATED new conversation with ID: {new_conversation.id}")
+        #     print("----------------------------\n")
+        #     return new_conversation, True
         
 
 class Conversation(models.Model):
