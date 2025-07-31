@@ -2,15 +2,10 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.contenttypes.models import ContentType
-
 from .models import Message, Conversation
-from tutors.models import Tutor
-from students.models import Student
-
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # Authenticate the user via the ticket middleware
         self.user = self.scope.get('user')
         if not self.user or not self.user.is_authenticated:
             await self.close()
@@ -21,18 +16,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # Get the conversation ID from the URL
         self.conversation_id = self.scope['url_route']['kwargs']['conversation_id']
         self.room_group_name = f"group_chat_{self.conversation_id}"
 
-        # SECURITY CHECK: Ensure the authenticated user is part of this conversation
         is_participant = await self.is_user_in_conversation(self.profile, self.conversation_id)
         if not is_participant:
-            # If not a participant, reject the connection
             await self.close()
             return
 
-        # Join room group
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -51,19 +42,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
         print(f"❌ User '{self.user}' disconnected from room.")
 
-# ... inside the ChatConsumer class ...
+
 
     async def receive(self, text_data):
         data = json.loads(text_data)
         message = data['message']
 
-        # --- THIS IS THE FIX ---
-        # We need to pass self.profile as the sender and
-        # self.conversation_id as the room identifier.
-        # The original code was trying to use self.room_name, which no longer exists.
         await self.save_message(self.profile, self.conversation_id, message)
 
-        # Broadcast the message to the entire group
+        
         await self.channel_layer.group_send(
             self.room_group_name,
             {

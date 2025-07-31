@@ -1,5 +1,4 @@
 # chat/middleware.py
-import json
 from urllib.parse import parse_qs
 from django.core.cache import cache
 from django.contrib.auth.models import AnonymousUser
