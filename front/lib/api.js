@@ -246,7 +246,18 @@ export const api = {
     startChat: (userType, userId, token) => api.get(`/chat/start/${userType}/${userId}/`, token),
 
     // Get message history for a conversation
-    getMessageHistory: (conversationId, token) => api.get(`/conversations/${conversationId}/messages/`, token),
+    getMessageHistory: async (conversationId, token) => {
+      try {
+        console.log(`Loading message history for conversation: ${conversationId}`)
+        const result = await api.get(`/conversations/${conversationId}/messages/`, token)
+        console.log("Message history API response:", result)
+        return result
+      } catch (error) {
+        console.error("Failed to load message history:", error)
+        // Return empty array if history fails to load
+        return []
+      }
+    },
   },
 }
 

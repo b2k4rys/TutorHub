@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,16 +15,19 @@ interface ChatRoomProps {
     id: number
     username: string
     user_type: "student" | "tutor"
+    first_name?: string
+    last_name?: string
   }
 }
 
 interface Message {
-  id?: string
+  id: string
   message: string
   sender_id: number
   sender_name: string
   sender_type: "student" | "tutor"
   timestamp: string
+  isOptimistic?: boolean
 }
 
 export default function ChatRoom({ conversationId, currentUser }: ChatRoomProps) {
@@ -49,6 +51,23 @@ export default function ChatRoom({ conversationId, currentUser }: ChatRoomProps)
     scrollToBottom()
   }, [messages])
 
+  // Simple function to check if message is from current user
+  const isFromCurrentUser = (message: Message): boolean => {
+    if (!currentUser) return false
+
+    // Primary check: user ID
+    if (currentUser.id && message.sender_id) {
+      return Number(currentUser.id) === Number(message.sender_id)
+    }
+
+    // Fallback: username
+    if (currentUser.username && message.sender_name) {
+      return currentUser.username.toLowerCase() === message.sender_name.toLowerCase()
+    }
+
+    return false
+  }
+
   // Load message history when component mounts
   useEffect(() => {
     const loadMessageHistory = async () => {
@@ -61,10 +80,21 @@ export default function ChatRoom({ conversationId, currentUser }: ChatRoomProps)
 
         console.log("Loading message history for conversation:", conversationId)
         const history = await api.chat.getMessageHistory(conversationId, token)
-        console.log("Message history loaded:", history)
+        console.log("Raw message history:", history)
 
         if (history && Array.isArray(history)) {
-          setMessages(history)
+          const processedHistory: Message[] = history.map((msg, index) => ({
+            id: msg.id || `history-${index}`,
+            message: msg.message || msg.content || "",
+            sender_id: Number(msg.sender_id || msg.sender?.id || 0),
+            sender_name: msg.sender_name || msg.sender?.username || `User ${msg.sender_id}`,
+            sender_type: msg.sender_type || msg.sender?.user_type || "student",
+            timestamp: msg.timestamp || msg.created_at || new Date().toISOString(),
+            isOptimistic: false,
+          }))
+
+          console.log("Processed message history:", processedHistory)
+          setMessages(processedHistory)
         }
       } catch (error) {
         console.error("Failed to load message history:", error)
@@ -81,22 +111,72 @@ export default function ChatRoom({ conversationId, currentUser }: ChatRoomProps)
 
   // Initialize WebSocket connection
   useEffect(() => {
-    if (!conversationId) return
+    if (!conversationId || !currentUser) return
 
     const handleMessage = (data: any) => {
-      console.log("Received message data:", data)
+      console.log("Received WebSocket message:", data)
 
-      // Handle different message formats from the backend
-      const messageData: Message = {
-        id: data.id || `temp-${Date.now()}`,
+      const newMessage: Message = {
+        id: data.id || `ws-${Date.now()}`,
         message: data.message,
-        sender_id: data.sender_id,
+        sender_id: Number(data.sender_id),
         sender_name: data.sender_name || `User ${data.sender_id}`,
         sender_type: data.sender_type || "student",
         timestamp: data.timestamp || new Date().toISOString(),
+        isOptimistic: false,
       }
 
-      setMessages((prev) => [...prev, messageData])
+      // Check if this is from the current user
+      const isOwnMessage = isFromCurrentUser(newMessage)
+      console.log("Is own message?", isOwnMessage, {
+        currentUserId: currentUser.id,
+        messageUserId: newMessage.sender_id,
+        currentUsername: currentUser.username,
+        messageSender: newMessage.sender_name,
+      })
+
+      if (isOwnMessage) {
+        console.log("Replacing optimistic message with real one")
+        setMessages((prev) => {
+          // Remove optimistic messages and add the real one
+          const withoutOptimistic = prev.filter((msg) => !msg.isOptimistic)
+
+          // Check if we already have this exact message
+          const exists = withoutOptimistic.some(
+            (msg) =>
+              msg.id === newMessage.id ||
+              (msg.message === newMessage.message &&
+                msg.sender_id === newMessage.sender_id &&
+                Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 5000),
+          )
+
+          if (exists) {
+            console.log("Message already exists, not adding")
+            return withoutOptimistic
+          }
+
+          return [...withoutOptimistic, newMessage]
+        })
+      } else {
+        console.log("Adding message from other user")
+        setMessages((prev) => {
+          // Check for duplicates
+          const exists = prev.some(
+            (msg) =>
+              msg.id === newMessage.id ||
+              (msg.message === newMessage.message &&
+                msg.sender_id === newMessage.sender_id &&
+                Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 1000),
+          )
+
+          if (exists) {
+            console.log("Duplicate message, ignoring")
+            return prev
+          }
+
+          return [...prev, newMessage]
+        })
+      }
     }
 
     const handleStatusChange = (status: string) => {
@@ -123,18 +203,34 @@ export default function ChatRoom({ conversationId, currentUser }: ChatRoomProps)
         websocketRef.current = null
       }
     }
-  }, [conversationId])
+  }, [conversationId, currentUser])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!newMessage.trim() || sendingMessage) return
+    if (!newMessage.trim() || sendingMessage || !currentUser) return
 
     const messageText = newMessage.trim()
+    const optimisticId = `optimistic-${Date.now()}`
+
     setNewMessage("")
     setSendingMessage(true)
 
     try {
+      // Add optimistic message immediately
+      const optimisticMessage: Message = {
+        id: optimisticId,
+        message: messageText,
+        sender_id: currentUser.id,
+        sender_name: currentUser.username,
+        sender_type: currentUser.user_type,
+        timestamp: new Date().toISOString(),
+        isOptimistic: true,
+      }
+
+      console.log("Adding optimistic message:", optimisticMessage)
+      setMessages((prev) => [...prev, optimisticMessage])
+
       // Send message through WebSocket
       if (websocketRef.current && connectionStatus === "connected") {
         const success = websocketRef.current.sendMessage(messageText)
@@ -142,26 +238,16 @@ export default function ChatRoom({ conversationId, currentUser }: ChatRoomProps)
         if (!success) {
           throw new Error("Failed to send message through WebSocket")
         }
-
-        // Optionally add optimistic update
-        if (currentUser) {
-          const optimisticMessage: Message = {
-            id: `optimistic-${Date.now()}`,
-            message: messageText,
-            sender_id: currentUser.id,
-            sender_name: currentUser.username,
-            sender_type: currentUser.user_type,
-            timestamp: new Date().toISOString(),
-          }
-          setMessages((prev) => [...prev, optimisticMessage])
-        }
       } else {
         throw new Error("WebSocket not connected")
       }
     } catch (error) {
       console.error("Failed to send message:", error)
       setError(`Failed to send message: ${error.message}`)
-      setNewMessage(messageText) // Restore message text
+      setNewMessage(messageText)
+
+      // Remove optimistic message on failure
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
     } finally {
       setSendingMessage(false)
       inputRef.current?.focus()
@@ -231,17 +317,29 @@ export default function ChatRoom({ conversationId, currentUser }: ChatRoomProps)
             </div>
           ) : (
             <div className="space-y-1">
-              {messages.map((message, index) => (
-                <ChatMessage
-                  key={message.id || index}
-                  message={message.message}
-                  senderId={message.sender_id}
-                  senderName={message.sender_name}
-                  senderType={message.sender_type}
-                  timestamp={message.timestamp}
-                  isCurrentUser={currentUser ? message.sender_id === currentUser.id : false}
-                />
-              ))}
+              {messages.map((message) => {
+                const isCurrentUserMessage = isFromCurrentUser(message)
+                console.log(`Rendering message ${message.id}: isCurrentUser=${isCurrentUserMessage}`, {
+                  messageId: message.id,
+                  senderId: message.sender_id,
+                  senderName: message.sender_name,
+                  currentUserId: currentUser?.id,
+                  currentUsername: currentUser?.username,
+                })
+
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    message={message.message}
+                    senderId={message.sender_id}
+                    senderName={message.sender_name}
+                    senderType={message.sender_type}
+                    timestamp={message.timestamp}
+                    isCurrentUser={isCurrentUserMessage}
+                    isOptimistic={message.isOptimistic}
+                  />
+                )
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}

@@ -29,7 +29,7 @@ class ChatWebSocket {
         throw new Error("No access token available")
       }
 
-      console.log("Getting WebSocket ticket...")
+      console.log("🎫 Getting WebSocket ticket...")
       const response = await fetch("http://localhost:8000/api/ws-ticket/", {
         method: "POST",
         headers: {
@@ -47,17 +47,17 @@ class ChatWebSocket {
 
       const data = await response.json()
       this.ticket = data.ticket
-      console.log("WebSocket ticket obtained successfully")
+      console.log("✅ WebSocket ticket obtained successfully")
 
       // Step 2: Connect to WebSocket using the ticket
       const wsScheme = window.location.protocol === "https:" ? "wss" : "ws"
       const wsUrl = `${wsScheme}://localhost:8000/ws/chat/${this.conversationId}/?ticket=${this.ticket}`
 
-      console.log("Connecting to WebSocket:", wsUrl)
+      console.log("🔌 Connecting to WebSocket:", wsUrl)
       this.socket = new WebSocket(wsUrl)
 
       this.socket.onopen = () => {
-        console.log("WebSocket connected successfully")
+        console.log("✅ WebSocket connected successfully")
         this.isConnecting = false
         this.reconnectAttempts = 0
         this.onStatusChange("connected")
@@ -66,15 +66,15 @@ class ChatWebSocket {
       this.socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          console.log("Received WebSocket message:", data)
+          console.log("📨 WebSocket message received:", data)
           this.onMessage(data)
         } catch (error) {
-          console.error("Error parsing WebSocket message:", error)
+          console.error("❌ Error parsing WebSocket message:", error)
         }
       }
 
       this.socket.onclose = (event) => {
-        console.log("WebSocket closed:", event.code, event.reason)
+        console.log("🔌 WebSocket closed:", event.code, event.reason)
         this.isConnecting = false
         this.onStatusChange("disconnected")
 
@@ -82,7 +82,7 @@ class ChatWebSocket {
         if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
           // Don't reconnect immediately for authentication failures
           if (event.code === 4003 || event.code === 4004) {
-            console.log("Authentication failed, not attempting reconnection")
+            console.log("❌ Authentication failed, not attempting reconnection")
             this.onStatusChange("authentication_failed")
             return
           }
@@ -91,12 +91,12 @@ class ChatWebSocket {
       }
 
       this.socket.onerror = (error) => {
-        console.error("WebSocket error:", error)
+        console.error("❌ WebSocket error:", error)
         this.isConnecting = false
         this.onStatusChange("error")
       }
     } catch (error) {
-      console.error("Failed to connect to WebSocket:", error)
+      console.error("❌ Failed to connect to WebSocket:", error)
       this.isConnecting = false
       this.onStatusChange("error")
 
@@ -110,7 +110,7 @@ class ChatWebSocket {
     this.reconnectAttempts++
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
 
-    console.log(`Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`)
+    console.log(`🔄 Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`)
     this.onStatusChange("reconnecting")
 
     setTimeout(() => {
@@ -123,16 +123,16 @@ class ChatWebSocket {
   sendMessage(message) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       const messageData = { message }
-      console.log("Sending message:", messageData)
+      console.log("📤 Sending message:", messageData)
       this.socket.send(JSON.stringify(messageData))
       return true
     }
-    console.warn("Cannot send message: WebSocket not connected")
+    console.warn("⚠️ Cannot send message: WebSocket not connected")
     return false
   }
 
   disconnect() {
-    console.log("Disconnecting WebSocket...")
+    console.log("🔌 Disconnecting WebSocket...")
     this.shouldReconnect = false
     if (this.socket) {
       this.socket.close()
