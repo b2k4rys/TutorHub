@@ -1,191 +1,265 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { api, storage } from "@/lib/api.js"
-import { StartChatButton } from "@/components/chat/StartChatButton"
+import StartChatButton from "@/components/chat/StartChatButton"
+import ChatRoom from "@/components/chat/ChatRoom"
+import { api, storage } from "@/lib/api"
 
 export default function TestChatPage() {
-  const [wsTicket, setWsTicket] = useState("")
-  const [chatUrl, setChatUrl] = useState("")
+  const [ticketResult, setTicketResult] = useState(null)
+  const [chatResult, setChatResult] = useState(null)
+  const [historyResult, setHistoryResult] = useState(null)
+  const [loading, setLoading] = useState({})
   const [testUserId, setTestUserId] = useState("1")
-  const [testUserType, setTestUserType] = useState<"tutor" | "student">("student")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [user, setUser] = useState(null)
+  const [testUserType, setTestUserType] = useState("student")
+  const [testConversationId, setTestConversationId] = useState("")
 
-  useEffect(() => {
-    const currentUser = storage.getUser()
-    setUser(currentUser)
-  }, [])
+  const setLoadingState = (key, value) => {
+    setLoading((prev) => ({ ...prev, [key]: value }))
+  }
 
   const testWebSocketTicket = async () => {
     try {
-      setIsLoading(true)
-      setError("")
+      setLoadingState("ticket", true)
       const token = storage.getAccessToken()
 
       if (!token) {
-        setError("No authentication token found")
-        return
+        throw new Error("No access token found. Please login first.")
       }
 
-      const response = await api.chat.getWebSocketTicket(token)
-      setWsTicket(response.ticket)
-      console.log("WebSocket ticket:", response)
+      const result = await api.chat.getWebSocketTicket(token)
+      setTicketResult({ success: true, data: result })
     } catch (error) {
-      setError(`Failed to get WebSocket ticket: ${error.message}`)
-      console.error("WebSocket ticket error:", error)
+      setTicketResult({ success: false, error: error.message })
     } finally {
-      setIsLoading(false)
+      setLoadingState("ticket", false)
     }
   }
 
   const testStartChat = async () => {
     try {
-      setIsLoading(true)
-      setError("")
+      setLoadingState("chat", true)
       const token = storage.getAccessToken()
 
       if (!token) {
-        setError("No authentication token found")
-        return
+        throw new Error("No access token found. Please login first.")
       }
 
-      const response = await api.chat.startChat(testUserType, Number.parseInt(testUserId), token)
-      setChatUrl(response.chat_url)
-      console.log("Start chat response:", response)
+      const result = await api.chat.startChat(testUserType, Number.parseInt(testUserId), token)
+      setChatResult({ success: true, data: result })
     } catch (error) {
-      setError(`Failed to start chat: ${error.message}`)
-      console.error("Start chat error:", error)
+      setChatResult({ success: false, error: error.message })
     } finally {
-      setIsLoading(false)
+      setLoadingState("chat", false)
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8">Chat System Test</h1>
+  const testMessageHistory = async () => {
+    try {
+      setLoadingState("history", true)
+      const token = storage.getAccessToken()
 
-        {/* User Info */}
-        <Card className="mb-6">
+      if (!token) {
+        throw new Error("No access token found. Please login first.")
+      }
+
+      if (!testConversationId) {
+        throw new Error("Please enter a conversation ID")
+      }
+
+      const result = await api.chat.getMessageHistory(testConversationId, token)
+      setHistoryResult({ success: true, data: result })
+    } catch (error) {
+      setHistoryResult({ success: false, error: error.message })
+    } finally {
+      setLoadingState("history", false)
+    }
+  }
+
+  const ResultDisplay = ({ result, title }) => {
+    if (!result) return null
+
+    return (
+      <div
+        className={`mt-4 p-4 rounded-lg ${result.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
+      >
+        <h4 className={`font-semibold ${result.success ? "text-green-800" : "text-red-800"}`}>
+          {title} {result.success ? "Success" : "Error"}
+        </h4>
+        <pre className={`mt-2 text-sm ${result.success ? "text-green-700" : "text-red-700"} overflow-auto`}>
+          {JSON.stringify(result.success ? result.data : result.error, null, 2)}
+        </pre>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Navigation Bar */}
+      <nav className="border-b border-gray-200 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Link href="/dashboard" className="text-2xl font-bold text-black">
+            TutorHub - Chat Testing
+          </Link>
+          <Link href="/dashboard">
+            <Button
+              variant="outline"
+              className="border-black text-black hover:bg-black hover:text-white bg-transparent"
+            >
+              ← Back to Dashboard
+            </Button>
+          </Link>
+        </div>
+      </nav>
+
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* API Tests */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>1. WebSocket Ticket Test</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">Test getting a WebSocket authentication ticket</p>
+                <Button
+                  onClick={testWebSocketTicket}
+                  disabled={loading.ticket}
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  {loading.ticket ? "Testing..." : "Test WebSocket Ticket"}
+                </Button>
+                <ResultDisplay result={ticketResult} title="WebSocket Ticket" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>2. Start Chat Test</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">Test starting a chat with another user</p>
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">User Type:</label>
+                    <select
+                      value={testUserType}
+                      onChange={(e) => setTestUserType(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="student">Student</option>
+                      <option value="tutor">Tutor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">User ID:</label>
+                    <Input
+                      value={testUserId}
+                      onChange={(e) => setTestUserId(e.target.value)}
+                      placeholder="Enter user ID"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={testStartChat}
+                  disabled={loading.chat}
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  {loading.chat ? "Testing..." : "Test Start Chat"}
+                </Button>
+                <ResultDisplay result={chatResult} title="Start Chat" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>3. Message History Test</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">Test loading message history for a conversation</p>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Conversation ID:</label>
+                  <Input
+                    value={testConversationId}
+                    onChange={(e) => setTestConversationId(e.target.value)}
+                    placeholder="Enter conversation UUID"
+                  />
+                </div>
+                <Button
+                  onClick={testMessageHistory}
+                  disabled={loading.history}
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  {loading.history ? "Testing..." : "Test Message History"}
+                </Button>
+                <ResultDisplay result={historyResult} title="Message History" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>4. StartChatButton Component Test</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">Test the StartChatButton component</p>
+                <div className="space-y-3">
+                  <StartChatButton userType="student" userId={1} userName="Test Student" />
+                  <StartChatButton userType="tutor" userId={1} userName="Test Tutor" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Live Chat Test */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>5. Live Chat Test</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">Test the ChatRoom component with a sample conversation</p>
+                {testConversationId ? (
+                  <ChatRoom conversationId={testConversationId} currentUser={storage.getUser()?.username} />
+                ) : (
+                  <div className="text-center py-8 text-gray-500">Enter a conversation ID above to test live chat</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Current User</CardTitle>
+            <CardTitle>Testing Instructions</CardTitle>
           </CardHeader>
           <CardContent>
-            {user ? (
+            <div className="space-y-4 text-sm text-gray-600">
               <div>
-                <p>
-                  <strong>Username:</strong> {user.username}
-                </p>
-                <p>
-                  <strong>Email:</strong> {user.email}
-                </p>
-                <p>
-                  <strong>User Type:</strong> {user.user_type}
-                </p>
-              </div>
-            ) : (
-              <p className="text-red-600">No user logged in</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* WebSocket Ticket Test */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>WebSocket Ticket Test</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={testWebSocketTicket} disabled={isLoading}>
-              Get WebSocket Ticket
-            </Button>
-            {wsTicket && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded">
-                <p className="text-sm">
-                  <strong>Ticket:</strong> {wsTicket}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Start Chat Test */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Start Chat Test</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">User Type:</label>
-                <select
-                  value={testUserType}
-                  onChange={(e) => setTestUserType(e.target.value as "tutor" | "student")}
-                  className="border rounded px-3 py-2"
-                >
-                  <option value="student">Student</option>
-                  <option value="tutor">Tutor</option>
-                </select>
+                <strong>1. WebSocket Ticket:</strong> This should return a ticket UUID that can be used for WebSocket
+                authentication.
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">User ID:</label>
-                <Input
-                  value={testUserId}
-                  onChange={(e) => setTestUserId(e.target.value)}
-                  placeholder="Enter user ID"
-                  className="w-32"
-                />
+                <strong>2. Start Chat:</strong> This should return a chat URL with a conversation ID. Use this ID for
+                testing message history and live chat.
               </div>
-            </div>
-            <Button onClick={testStartChat} disabled={isLoading}>
-              Start Chat
-            </Button>
-            {chatUrl && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded">
-                <p className="text-sm">
-                  <strong>Chat URL:</strong> {chatUrl}
-                </p>
-                <Button
-                  onClick={() => {
-                    const conversationId = chatUrl.split("/").slice(-2, -1)[0]
-                    window.open(`/chat/${conversationId}?user=Test User`, "_blank")
-                  }}
-                  className="mt-2"
-                  size="sm"
-                >
-                  Open Chat
-                </Button>
+              <div>
+                <strong>3. Message History:</strong> Enter a valid conversation ID to load previous messages.
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Start Chat Button Component Test */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Start Chat Button Component Test</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <StartChatButton userType="student" userId={1} userName="Test Student" variant="default" />
-              <StartChatButton userType="tutor" userId={1} userName="Test Tutor" variant="outline" />
+              <div>
+                <strong>4. StartChatButton:</strong> These buttons should navigate to a chat room when clicked.
+              </div>
+              <div>
+                <strong>5. Live Chat:</strong> Enter a conversation ID to test real-time messaging.
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Error Display */}
-        {error && (
-          <Card className="border-red-200">
-            <CardContent className="pt-6">
-              <p className="text-red-600">{error}</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      </main>
     </div>
   )
 }

@@ -1,9 +1,17 @@
-export default function Loading() {
+import { Card, CardContent } from "@/components/ui/card"
+
+export default function ChatLoading() {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading chat room...</p>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4">
+        <Card className="w-full max-w-4xl mx-auto h-[600px] flex items-center justify-center">
+          <CardContent>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading chat...</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

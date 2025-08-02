@@ -1,114 +1,125 @@
+import { storage } from "./api"
+
 class ChatWebSocket {
-  constructor() {
+  constructor(conversationId, onMessage, onStatusChange) {
+    this.conversationId = conversationId
+    this.onMessage = onMessage
+    this.onStatusChange = onStatusChange
     this.socket = null
-    this.isConnected = false
     this.reconnectAttempts = 0
     this.maxReconnectAttempts = 5
     this.reconnectDelay = 1000
-    this.messageHandlers = []
-    this.statusHandlers = []
-    this.conversationId = null
+    this.isConnecting = false
+    this.shouldReconnect = true
   }
 
-  async connect(conversationId, token) {
-    this.conversationId = conversationId
+  async connect() {
+    if (this.isConnecting || (this.socket && this.socket.readyState === WebSocket.OPEN)) {
+      return
+    }
+
+    this.isConnecting = true
+    this.onStatusChange("connecting")
 
     try {
       // Get WebSocket ticket
-      const { api } = await import("./api.js")
-      const ticketResponse = await api.chat.getTicket(token)
-      const ticket = ticketResponse.ticket
+      const token = storage.getAccessToken()
+      if (!token) {
+        throw new Error("No access token available")
+      }
 
-      // Create WebSocket connection
+      const response = await fetch("http://localhost:8000/api/ws-ticket/", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to get WebSocket ticket")
+      }
+
+      const data = await response.json()
+      const ticket = data.ticket
+
+      // Connect to WebSocket
       const wsScheme = window.location.protocol === "https:" ? "wss" : "ws"
-      const wsUrl = `${wsScheme}://${window.location.host.replace(":3000", ":8000")}/ws/chat/${conversationId}/?ticket=${ticket}`
+      const wsUrl = `${wsScheme}://localhost:8000/ws/chat/${this.conversationId}/?ticket=${ticket}`
 
       this.socket = new WebSocket(wsUrl)
 
-      this.socket.onopen = (event) => {
+      this.socket.onopen = () => {
         console.log("WebSocket connected")
-        this.isConnected = true
+        this.isConnecting = false
         this.reconnectAttempts = 0
-        this.notifyStatusHandlers("connected")
+        this.onStatusChange("connected")
       }
 
       this.socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          this.notifyMessageHandlers(data)
+          this.onMessage(data)
         } catch (error) {
           console.error("Error parsing WebSocket message:", error)
         }
       }
 
       this.socket.onclose = (event) => {
-        console.log("WebSocket disconnected")
-        this.isConnected = false
-        this.notifyStatusHandlers("disconnected")
+        console.log("WebSocket closed:", event.code, event.reason)
+        this.isConnecting = false
+        this.onStatusChange("disconnected")
 
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.scheduleReconnect(token)
+        if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.scheduleReconnect()
         }
       }
 
       this.socket.onerror = (error) => {
         console.error("WebSocket error:", error)
-        this.notifyStatusHandlers("error")
+        this.isConnecting = false
+        this.onStatusChange("error")
       }
     } catch (error) {
       console.error("Failed to connect to WebSocket:", error)
-      this.notifyStatusHandlers("error")
-      throw error
+      this.isConnecting = false
+      this.onStatusChange("error")
+
+      if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.scheduleReconnect()
+      }
     }
   }
 
-  scheduleReconnect(token) {
+  scheduleReconnect() {
     this.reconnectAttempts++
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
 
-    console.log(
-      `Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
-    )
+    console.log(`Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`)
+    this.onStatusChange("reconnecting")
 
     setTimeout(() => {
-      if (this.conversationId) {
-        this.connect(this.conversationId, token)
+      if (this.shouldReconnect) {
+        this.connect()
       }
     }, delay)
   }
 
   sendMessage(message) {
-    if (this.socket && this.isConnected) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify({ message }))
       return true
     }
     return false
   }
 
-  onMessage(handler) {
-    this.messageHandlers.push(handler)
-  }
-
-  onStatus(handler) {
-    this.statusHandlers.push(handler)
-  }
-
-  notifyMessageHandlers(data) {
-    this.messageHandlers.forEach((handler) => handler(data))
-  }
-
-  notifyStatusHandlers(status) {
-    this.statusHandlers.forEach((handler) => handler(status))
-  }
-
   disconnect() {
+    this.shouldReconnect = false
     if (this.socket) {
       this.socket.close()
       this.socket = null
     }
-    this.isConnected = false
-    this.conversationId = null
   }
 }
 
-export { ChatWebSocket }
+export default ChatWebSocket
