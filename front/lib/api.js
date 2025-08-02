@@ -148,7 +148,7 @@ export const api = {
 
     checkStudent: (username, token) =>
       api.post(
-        "/classroom/check/",
+        "/tutors/check/",
         {
           student_username: username,
         },
@@ -165,6 +165,9 @@ export const api = {
 
     // Student detail endpoint
     getDetail: (studentId, token) => api.get(`/students/details/${studentId}/`, token),
+
+    // Get all students for current tutor
+    getAllForTutor: (token) => api.get("/tutors/students/all/", token),
   },
 
   // Tutors endpoints

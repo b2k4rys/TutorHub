@@ -3,7 +3,11 @@ from .views import TutorAddView, TutorCheckStudent, TutorDetailView, TutorAllStu
 
 urlpatterns = [
     path('register/', TutorAddView.as_view()),
+
+    
     path('check/', TutorCheckStudent.as_view()) ,
+
+
     path('details/<int:tutor_id>/', TutorDetailView.as_view()),
 
     # VIEW ALL STUDENTS - (v0 integrate frontend)

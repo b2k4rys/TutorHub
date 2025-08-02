@@ -134,6 +134,15 @@ export default function Dashboard() {
 
           <div className="text-center p-8 border border-gray-200 rounded-lg">
             <div className="text-4xl mb-4">👥</div>
+            <h3 className="text-xl font-bold text-black mb-4">My Students</h3>
+            <p className="text-gray-600 mb-4">View and manage all your students</p>
+            <Link href="/students">
+              <Button className="bg-black text-white hover:bg-gray-800">View Students</Button>
+            </Link>
+          </div>
+
+          <div className="text-center p-8 border border-gray-200 rounded-lg">
+            <div className="text-4xl mb-4">👥</div>
             <h3 className="text-xl font-bold text-black mb-4">Students</h3>
             <p className="text-gray-600 mb-4">Manage your student roster</p>
             <Button className="bg-black text-white hover:bg-gray-800">View Students</Button>
