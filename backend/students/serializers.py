@@ -15,7 +15,7 @@ class StudentTutorDetailViewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['username', 'first_name', 'last_name', 'school_name', 'grade', 'phone', 'telegram_username']
+        fields = ['id','username', 'first_name', 'last_name', 'school_name', 'grade', 'phone', 'telegram_username']
 
 class StudentStudentDetailViewSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')

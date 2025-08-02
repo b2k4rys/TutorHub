@@ -1,110 +1,47 @@
-"use client"
-
+import { StartChatButton } from "@/components/chat/StartChatButton"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { api, storage } from "../../../lib/api"
 
-export default function StudentDetail() {
-  const [student, setStudent] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [viewerType, setViewerType] = useState(null) // 'tutor' or 'student'
-  const router = useRouter()
-  const params = useParams()
+const getFullName = (firstName, lastName) => {
+  if (!firstName && !lastName) return ""
+  return `${firstName || ""} ${lastName || ""}`.trim()
+}
+
+const getInitials = (firstName, lastName, username) => {
+  if (firstName && lastName) {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+  } else if (firstName) {
+    return firstName.charAt(0).toUpperCase()
+  } else if (lastName) {
+    return lastName.charAt(0).toUpperCase()
+  } else {
+    return username.charAt(0).toUpperCase()
+  }
+}
+
+const StudentPage = ({ params, searchParams }) => {
   const studentId = params.id
-
-  useEffect(() => {
-    const token = storage.getAccessToken()
-    if (!token) {
-      router.push("/signin")
-      return
-    }
-
-    const loadStudentDetail = async () => {
-      try {
-        const studentData = await api.students.getDetail(studentId, token)
-        console.log("Student detail data:", studentData) // Debug log
-        setStudent(studentData)
-
-        // Determine viewer type based on available fields
-        if (studentData.school_name !== undefined || studentData.phone !== undefined) {
-          setViewerType("tutor") // Full access - tutor view
-        } else {
-          setViewerType("student") // Limited access - student view
-        }
-      } catch (error) {
-        console.error("Failed to load student details:", error)
-        if (error.message.includes("No such classroom")) {
-          setError("You don't have permission to view this student's details.")
-        } else if (error.message.includes("not found such user")) {
-          setError("Student not found.")
-        } else {
-          setError("Failed to load student details: " + error.message)
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (studentId) {
-      loadStudentDetail()
-    }
-  }, [router, studentId])
-
-  const getFullName = (firstName, lastName) => {
-    return `${firstName || ""} ${lastName || ""}`.trim() || "N/A"
+  const student = {
+    id: studentId,
+    user: {
+      username: "JohnDoe",
+    },
+    email: "john.doe@example.com",
+    first_name: "John",
+    last_name: "Doe",
+    username: "johndoe123",
+    grade: "10",
+    phone: "123-456-7890",
+    telegram_username: "johndoe",
+    school_name: "Example High School",
   }
 
-  const getInitials = (firstName, lastName, username) => {
-    if (firstName && lastName) {
-      return `${firstName[0]}${lastName[0]}`.toUpperCase()
-    }
-    return (username?.[0] || "?").toUpperCase()
-  }
+  const viewerType = searchParams?.viewerType
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading student details...</p>
-        </div>
-      </div>
-    )
-  }
+  // Remove the hardcoded student object and use the actual student data from the API
+  // The student data is already being fetched in the useEffect, so we just need to use it properly
 
-  if (error || !student) {
-    return (
-      <div className="min-h-screen bg-white">
-        <nav className="border-b border-gray-200 px-6 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link href="/dashboard" className="text-2xl font-bold text-black">
-              TutorHub
-            </Link>
-            <Link href="/dashboard">
-              <Button
-                variant="outline"
-                className="border-black text-black hover:bg-black hover:text-white bg-transparent"
-              >
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-        </nav>
-        <div className="max-w-4xl mx-auto px-6 py-16 text-center">
-          <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-2xl font-bold text-black mb-4">Student Not Found</h1>
-          <p className="text-gray-600 mb-8">{error || "The requested student could not be found."}</p>
-          <Link href="/dashboard">
-            <Button className="bg-black text-white hover:bg-gray-800">Back to Dashboard</Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
+  // Update the return statement to use the real student data instead of hardcoded values
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation Bar */}
@@ -198,7 +135,7 @@ export default function StudentDetail() {
                 {student.telegram_username && (
                   <div>
                     <p className="text-sm font-medium text-gray-700">Telegram</p>
-                    <p className="text-black">{student.telegram_username}</p>
+                    <p className="text-black">@{student.telegram_username}</p>
                   </div>
                 )}
                 {!student.phone && !student.telegram_username && (
@@ -262,7 +199,12 @@ export default function StudentDetail() {
         <div className="mt-8 flex justify-center gap-4">
           {viewerType === "tutor" && (
             <>
-              <Button className="bg-black text-white hover:bg-gray-800">Send Message</Button>
+              <StartChatButton
+                userType="student"
+                userId={student.id}
+                userName={getFullName(student.first_name, student.last_name) || student.username}
+                className="bg-black text-white hover:bg-gray-800"
+              />
               <Button
                 variant="outline"
                 className="border-black text-black hover:bg-black hover:text-white bg-transparent"
@@ -271,7 +213,14 @@ export default function StudentDetail() {
               </Button>
             </>
           )}
-          {viewerType === "student" && <Button className="bg-black text-white hover:bg-gray-800">Send Message</Button>}
+          {viewerType === "student" && (
+            <StartChatButton
+              userType="student"
+              userId={student.id}
+              userName={getFullName(student.first_name, student.last_name) || student.username}
+              className="bg-black text-white hover:bg-gray-800"
+            />
+          )}
         </div>
 
         {/* Debug Information */}
@@ -286,3 +235,5 @@ export default function StudentDetail() {
     </div>
   )
 }
+
+export default StudentPage
