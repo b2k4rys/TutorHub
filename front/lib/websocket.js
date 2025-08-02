@@ -11,6 +11,7 @@ class ChatWebSocket {
     this.reconnectDelay = 1000
     this.isConnecting = false
     this.shouldReconnect = true
+    this.ticket = null
   }
 
   async connect() {
@@ -22,12 +23,13 @@ class ChatWebSocket {
     this.onStatusChange("connecting")
 
     try {
-      // Get WebSocket ticket
+      // Step 1: Get WebSocket ticket with JWT authentication
       const token = storage.getAccessToken()
       if (!token) {
         throw new Error("No access token available")
       }
 
+      console.log("Getting WebSocket ticket...")
       const response = await fetch("http://localhost:8000/api/ws-ticket/", {
         method: "POST",
         headers: {
@@ -37,20 +39,25 @@ class ChatWebSocket {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to get WebSocket ticket")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(
+          `Failed to get WebSocket ticket: ${response.status} - ${errorData.detail || response.statusText}`,
+        )
       }
 
       const data = await response.json()
-      const ticket = data.ticket
+      this.ticket = data.ticket
+      console.log("WebSocket ticket obtained successfully")
 
-      // Connect to WebSocket
+      // Step 2: Connect to WebSocket using the ticket
       const wsScheme = window.location.protocol === "https:" ? "wss" : "ws"
-      const wsUrl = `${wsScheme}://localhost:8000/ws/chat/${this.conversationId}/?ticket=${ticket}`
+      const wsUrl = `${wsScheme}://localhost:8000/ws/chat/${this.conversationId}/?ticket=${this.ticket}`
 
+      console.log("Connecting to WebSocket:", wsUrl)
       this.socket = new WebSocket(wsUrl)
 
       this.socket.onopen = () => {
-        console.log("WebSocket connected")
+        console.log("WebSocket connected successfully")
         this.isConnecting = false
         this.reconnectAttempts = 0
         this.onStatusChange("connected")
@@ -59,6 +66,7 @@ class ChatWebSocket {
       this.socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
+          console.log("Received WebSocket message:", data)
           this.onMessage(data)
         } catch (error) {
           console.error("Error parsing WebSocket message:", error)
@@ -70,7 +78,14 @@ class ChatWebSocket {
         this.isConnecting = false
         this.onStatusChange("disconnected")
 
+        // Only attempt reconnection for certain close codes
         if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
+          // Don't reconnect immediately for authentication failures
+          if (event.code === 4003 || event.code === 4004) {
+            console.log("Authentication failed, not attempting reconnection")
+            this.onStatusChange("authentication_failed")
+            return
+          }
           this.scheduleReconnect()
         }
       }
@@ -107,17 +122,38 @@ class ChatWebSocket {
 
   sendMessage(message) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ message }))
+      const messageData = { message }
+      console.log("Sending message:", messageData)
+      this.socket.send(JSON.stringify(messageData))
       return true
     }
+    console.warn("Cannot send message: WebSocket not connected")
     return false
   }
 
   disconnect() {
+    console.log("Disconnecting WebSocket...")
     this.shouldReconnect = false
     if (this.socket) {
       this.socket.close()
       this.socket = null
+    }
+  }
+
+  getConnectionStatus() {
+    if (!this.socket) return "disconnected"
+
+    switch (this.socket.readyState) {
+      case WebSocket.CONNECTING:
+        return "connecting"
+      case WebSocket.OPEN:
+        return "connected"
+      case WebSocket.CLOSING:
+        return "disconnecting"
+      case WebSocket.CLOSED:
+        return "disconnected"
+      default:
+        return "unknown"
     }
   }
 }
