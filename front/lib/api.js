@@ -31,19 +31,31 @@ export const api = {
         body = JSON.stringify(data)
       }
 
+      console.log(`Making ${useFormData ? "FormData" : "JSON"} POST request to: ${API_BASE_URL}${endpoint}`)
+      console.log("Data being sent:", data)
+      if (useFormData) {
+        console.log("FormData entries:", [...body.entries()])
+      }
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers,
         body,
       })
 
+      console.log("Response status:", response.status)
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()))
+
       // Check if response is HTML (error page) instead of JSON
       const contentType = response.headers.get("content-type")
       if (contentType && contentType.includes("text/html")) {
+        const htmlText = await response.text()
+        console.error("Received HTML instead of JSON:", htmlText.substring(0, 500))
         throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`)
       }
 
       const result = await response.json()
+      console.log("Response data:", result)
 
       if (!response.ok) {
         const errorMessage =
@@ -53,6 +65,7 @@ export const api = {
           result.non_field_errors?.[0] ||
           result.student_usernames?.[0] ||
           Object.values(result)[0]?.[0] ||
+          Object.values(result).flat().join(", ") ||
           "Something went wrong"
         throw new Error(errorMessage)
       }
@@ -140,7 +153,29 @@ export const api = {
 
   // Classroom endpoints
   classroom: {
-    create: (classroomData, token) => api.post("/classroom/register/", classroomData, token, false),
+    // Try form-data first, then JSON if that fails
+    create: async (classroomData, token) => {
+      console.log("Attempting classroom creation with data:", classroomData)
+
+      try {
+        // First try with form-data (most Django endpoints expect this)
+        console.log("Trying form-data format...")
+        return await api.post("/classroom/register/", classroomData, token, true)
+      } catch (error) {
+        console.log("Form-data failed, trying JSON format...")
+        console.error("Form-data error:", error.message)
+
+        try {
+          // If form-data fails, try JSON
+          return await api.post("/classroom/register/", classroomData, token, false)
+        } catch (jsonError) {
+          console.error("JSON format also failed:", jsonError.message)
+          throw new Error(
+            `Classroom creation failed. Form-data error: ${error.message}. JSON error: ${jsonError.message}`,
+          )
+        }
+      }
+    },
 
     list: (token) => api.get("/classroom/all/", token),
 
@@ -167,7 +202,7 @@ export const api = {
     getDetail: (studentId, token) => api.get(`/students/details/${studentId}/`, token),
 
     // Get all students for current tutor
-    getAllForTutor: (token) => api.get("/tutors/students/all/", token),
+    getAllForTutor: (token) => api.get("/students/all/", token),
   },
 
   // Tutors endpoints
@@ -249,7 +284,7 @@ export const storage = {
 
   removeUser: () => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("tutorhub_user")
+      localStorage.removeUser("tutorhub_user")
     }
   },
 
