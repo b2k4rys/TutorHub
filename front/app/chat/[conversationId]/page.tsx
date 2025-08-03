@@ -7,8 +7,16 @@ import { Button } from "@/components/ui/button"
 import ChatRoom from "@/components/chat/ChatRoom"
 import { storage } from "@/lib/api"
 
+interface User {
+  id: string | number
+  username: string
+  user_type: string
+  first_name: string
+  last_name: string
+}
+
 export default function ChatPage() {
-  const [currentUser, setCurrentUser] = useState(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const router = useRouter()
@@ -35,8 +43,8 @@ export default function ChatPage() {
     }
 
     // Ensure user has required fields
-    const processedUser = {
-      id: userData.id || userData.user_id || null,
+    const processedUser: User = {
+      id: userData.id || userData.user_id || "",
       username: userData.username || "",
       user_type: userData.user_type || userData.role || "student",
       first_name: userData.first_name || "",
@@ -44,6 +52,13 @@ export default function ChatPage() {
     }
 
     console.log("Processed user data:", processedUser)
+
+    if (!processedUser.id || !processedUser.username) {
+      setError("Invalid user data. Please sign in again.")
+      setLoading(false)
+      return
+    }
+
     setCurrentUser(processedUser)
     setLoading(false)
   }, [router])
@@ -81,20 +96,10 @@ export default function ChatPage() {
         <div className="max-w-4xl mx-auto px-6 py-16 text-center">
           <div className="text-6xl mb-4">❌</div>
           <h1 className="text-2xl font-bold text-black mb-4">Chat Error</h1>
-          <p className="text-gray-600 mb-8">{error || "Unable to load chat. Please try again."}</p>
-          <div className="flex gap-4 justify-center">
-            <Link href="/signin">
-              <Button className="bg-black text-white hover:bg-gray-800">Sign In</Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button
-                variant="outline"
-                className="border-black text-black hover:bg-black hover:text-white bg-transparent"
-              >
-                Dashboard
-              </Button>
-            </Link>
-          </div>
+          <p className="text-gray-600 mb-8">{error || "Unable to load chat."}</p>
+          <Link href="/signin">
+            <Button className="bg-black text-white hover:bg-gray-800">Sign In Again</Button>
+          </Link>
         </div>
       </div>
     )
@@ -121,33 +126,29 @@ export default function ChatPage() {
         </div>
       </nav>
 
-      {/* Chat Content */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="mb-6 text-center">
+      {/* Chat Header */}
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-black mb-2">Chat Room</h1>
           <p className="text-gray-600">Real-time messaging with secure authentication</p>
         </div>
 
+        {/* Chat Component */}
         <ChatRoom conversationId={conversationId} currentUser={currentUser} />
 
         {/* Debug Information */}
         {process.env.NODE_ENV === "development" && (
           <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <h3 className="font-bold text-gray-800 mb-2">Debug Info (Development Only):</h3>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>Conversation ID: {conversationId}</p>
-              <p>
-                User: {currentUser?.username} (ID: {currentUser?.id})
-              </p>
-              <p>User Type: {currentUser?.user_type}</p>
-              <p>
-                Full Name: {currentUser?.first_name} {currentUser?.last_name}
-              </p>
-              <p>Token Available: {storage.getAccessToken() ? "Yes" : "No"}</p>
-            </div>
+            <p className="text-sm text-gray-600 mb-2">Conversation ID: {conversationId}</p>
+            <p className="text-sm text-gray-600 mb-2">
+              User: {currentUser.username} (ID: {currentUser.id})
+            </p>
+            <p className="text-sm text-gray-600 mb-2">User Type: {currentUser.user_type}</p>
+            <p className="text-sm text-gray-600 mb-2">Token Available: {!!storage.getAccessToken() ? "Yes" : "No"}</p>
           </div>
         )}
-      </main>
+      </div>
     </div>
   )
 }

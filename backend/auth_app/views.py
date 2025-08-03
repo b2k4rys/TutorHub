@@ -23,6 +23,7 @@ class MeView(views.APIView):
         return Response({
             "username": request.user.username,
             "email": request.user.email,
+            "user_id": request.user.id
         })
     
 class RequestDataView(views.APIView):

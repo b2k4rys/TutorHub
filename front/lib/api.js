@@ -6,7 +6,6 @@ export const api = {
   post: async (endpoint, data, token = null, useFormData = false) => {
     try {
       const headers = {}
-
       if (token) {
         headers.Authorization = `Bearer ${token}`
       }
@@ -83,7 +82,6 @@ export const api = {
       const headers = {
         "Content-Type": "application/json",
       }
-
       if (token) {
         headers.Authorization = `Bearer ${token}`
       }
@@ -125,8 +123,8 @@ export const api = {
 
   // Auth endpoints
   auth: {
-    login: (credentials) =>
-      api.post(
+    login: async (credentials) => {
+      const loginResult = await api.post(
         "/auth/login/",
         {
           username: credentials.username,
@@ -134,12 +132,38 @@ export const api = {
         },
         null,
         true,
-      ),
+      )
 
+      // After successful login, get user profile to get user_id
+      if (loginResult.access) {
+        try {
+          const userProfile = await api.get("/auth/me/", loginResult.access)
+          console.log("User profile with user_id:", userProfile)
+
+          // Store user data with user_id
+          const userData = {
+            user_id: userProfile.user_id,
+            id: userProfile.user_id, // Also store as id for compatibility
+            username: userProfile.username,
+            email: userProfile.email,
+            user_type: userProfile.user_type || "student",
+            first_name: userProfile.first_name || "",
+            last_name: userProfile.last_name || "",
+          }
+
+          storage.setUser(userData)
+          return { ...loginResult, user: userData }
+        } catch (error) {
+          console.error("Failed to get user profile:", error)
+          // Return login result even if profile fetch fails
+          return loginResult
+        }
+      }
+
+      return loginResult
+    },
     register: (userData) => api.post("/auth/register/", userData, null, true),
-
     me: (token) => api.get("/auth/me/", token),
-
     refreshToken: (refreshToken) =>
       api.post(
         "/auth/token/refresh/",
@@ -156,7 +180,6 @@ export const api = {
     // Try form-data first, then JSON if that fails
     create: async (classroomData, token) => {
       console.log("Attempting classroom creation with data:", classroomData)
-
       try {
         // First try with form-data (most Django endpoints expect this)
         console.log("Trying form-data format...")
@@ -164,7 +187,6 @@ export const api = {
       } catch (error) {
         console.log("Form-data failed, trying JSON format...")
         console.error("Form-data error:", error.message)
-
         try {
           // If form-data fails, try JSON
           return await api.post("/classroom/register/", classroomData, token, false)
@@ -176,11 +198,8 @@ export const api = {
         }
       }
     },
-
     list: (token) => api.get("/classroom/all/", token),
-
     get: (id, token) => api.get(`/classroom/${id}/`, token),
-
     checkStudent: (username, token) =>
       api.post(
         "/tutors/check/",
@@ -195,22 +214,17 @@ export const api = {
   // Students endpoints
   students: {
     list: (token) => api.get("/students/", token),
-
     get: (id, token) => api.get(`/students/${id}/`, token),
-
     // Student detail endpoint
     getDetail: (studentId, token) => api.get(`/students/details/${studentId}/`, token),
-
     // Get all students for current tutor
-    getAllForTutor: (token) => api.get("/students/all/", token),
+    getAllForTutor: (token) => api.get("/tutors/students/all/", token),
   },
 
   // Tutors endpoints
   tutors: {
     list: (token) => api.get("/tutors/", token),
-
     get: (id, token) => api.get(`/tutors/${id}/`, token),
-
     // Tutor detail endpoint with better error handling
     getDetail: (tutorId, token) => api.get(`/tutors/details/${tutorId}/`, token),
   },
@@ -219,20 +233,15 @@ export const api = {
   homeworks: {
     // List all homeworks (assuming there's a list endpoint)
     list: (token) => api.get("/homeworks/", token),
-
     // Get homeworks for a specific classroom
     getByClassroom: (classroomId, token) => api.get(`/homeworks/classroom/${classroomId}/`, token),
-
     // Get specific homework details
     get: (id, token) => api.get(`/homeworks/${id}/`, token),
-
     // Create new homework for specific classroom (tutors only)
     create: (classroomId, homeworkData, token) =>
       api.post(`/homeworks/classroom/${classroomId}/assign/`, homeworkData, token, true),
-
     // Submit homework (if needed later)
     submit: (homeworkData, token) => api.post("/homeworks/submit/", homeworkData, token, true),
-
     // Grade homework (if needed later)
     grade: (homeworkData, token) => api.post("/homeworks/grade/", homeworkData, token, false),
   },
@@ -241,10 +250,8 @@ export const api = {
   chat: {
     // Get WebSocket ticket for authentication
     getWebSocketTicket: (token) => api.post("/ws-ticket/", {}, token, false),
-
     // Start or get existing chat with another user
     startChat: (userType, userId, token) => api.get(`/chat/start/${userType}/${userId}/`, token),
-
     // Get message history for a conversation
     getMessageHistory: async (conversationId, token) => {
       try {
