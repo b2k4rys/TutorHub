@@ -23,7 +23,8 @@ class ClassroomView(ListAPIView):
     def get_queryset(self):
         tutor = Tutor.objects.filter(user=self.request.user).first()
         if not tutor:
-            return Classroom.objects.none()  
+            student = Student.objects.filter(user=self.request.user).first()
+            return Classroom.objects.filter(students=student)
         return Classroom.objects.filter(tutor=tutor)
     
 class ClassroomDetailView(APIView):

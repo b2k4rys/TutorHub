@@ -17,7 +17,7 @@ class TutorDetailViewSerializer(serializers.ModelSerializer):
 
     class Meta: 
         model = Tutor
-        fields = ['username', 'first_name', 'last_name', 'subject', 'description', 'phone', 'telegram_username']
+        fields = ['id', 'username', 'first_name', 'last_name', 'subject', 'description', 'phone', 'telegram_username']
 
 
 
