@@ -96,18 +96,16 @@ class HomeworksView(APIView):
             tutor = Tutor.objects.get(user=user)
             try:
                 classroom.tutor = tutor
-            except Tutor.DoesNotExist:
+            except Exception as e:
                 raise exceptions.PermissionDenied("Not tutor of this classroom")
             homeworks = HomeworkClassroomAssign.objects.all()
             serializer = HomeworksViewSerializer(homeworks, many=True)
             return Response(serializer.data)
         except Tutor.DoesNotExist:
             student = Student.objects.get(user=user)
-            try:
-                classroom.students = student
-            except Student.DoesNotExist:
-                raise exceptions.PermissionDenied("Not student of this classroom")
-            homeworks = HomeworkClassroomAssign.objects.all()
+            if not classroom.students.filter(pk=student.pk).exists():
+                raise exceptions.PermissionDenied("Not a student of this classroom")
+            homeworks = HomeworkClassroomAssign.objects.filter(classroom=classroom).all()
             serializer = HomeworksViewSerializer(homeworks, many=True)
             return Response(serializer.data)
         
