@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import WebSocketTicketView, StartChatView, chat_room, MessageHistoryView
+from .views import WebSocketTicketView, StartChatView, chat_room, MessageHistoryView, AllChatsView
 
 urlpatterns = [
     
@@ -12,4 +12,6 @@ urlpatterns = [
     path('chat/<uuid:conversation_id>/', chat_room, name='chat_room'),
 
     path('conversations/<uuid:conversation_id>/messages/', MessageHistoryView.as_view(), name='message-history'),
+
+    path('chats/all/', AllChatsView.as_view())
 ]

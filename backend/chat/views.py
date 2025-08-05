@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from .models import Message
+from .models import Message, Participant
 import uuid
 from django.core.cache import cache
 from rest_framework.views import APIView
@@ -10,8 +10,8 @@ from tutors.models import Tutor
 from students.models import Student
 from .models import Conversation
 from rest_framework import generics, permissions
-from .serializers import MessageSerializer
-
+from .serializers import MessageSerializer, ConversationSerializer
+from django.contrib.contenttypes.models import ContentType
 
 class WebSocketTicketView(APIView):
     permission_classes = [IsAuthenticated]
@@ -114,3 +114,30 @@ class MessageHistoryView(generics.ListAPIView):
     def get_queryset(self):
         conversation_id = self.kwargs['conversation_id']
         return Message.objects.filter(conversation_id=conversation_id).order_by('timestamp')
+
+class AllChatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        profile = None
+        
+        if hasattr(user, 'tutor'):
+            profile = user.tutor
+        elif hasattr(user, 'student'):
+            profile = user.student
+        
+        if not profile:
+            return Response([], status=status.HTTP_200_OK)
+
+        content_type = ContentType.objects.get_for_model(profile.__class__)
+
+        conversation_ids = Participant.objects.filter(
+            user_content_type=content_type,
+            user_object_id=profile.id
+        ).values_list('conversation_id', flat=True)
+        
+        conversations = Conversation.objects.filter(id__in=conversation_ids)
+    
+        serializer = ConversationSerializer(conversations, many=True, context={'request': request})
+        return Response(serializer.data)
