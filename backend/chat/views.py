@@ -10,7 +10,7 @@ from tutors.models import Tutor
 from students.models import Student
 from .models import Conversation
 from rest_framework import generics, permissions
-from .serializers import MessageSerializer, ConversationSerializer
+from .serializers import MessageSerializer, ConversationListSerializer
 from django.contrib.contenttypes.models import ContentType
 
 class WebSocketTicketView(APIView):
@@ -115,29 +115,45 @@ class MessageHistoryView(generics.ListAPIView):
         conversation_id = self.kwargs['conversation_id']
         return Message.objects.filter(conversation_id=conversation_id).order_by('timestamp')
 
+
+
 class AllChatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        profile = None
-        
-        if hasattr(user, 'tutor'):
-            profile = user.tutor
-        elif hasattr(user, 'student'):
-            profile = user.student
+        profile = getattr(user, 'tutor', None) or getattr(user, 'student', None)
         
         if not profile:
             return Response([], status=status.HTTP_200_OK)
 
         content_type = ContentType.objects.get_for_model(profile.__class__)
 
+ 
         conversation_ids = Participant.objects.filter(
             user_content_type=content_type,
             user_object_id=profile.id
         ).values_list('conversation_id', flat=True)
-        
+
+        if not conversation_ids.exists():
+            return Response([])
+
+
+        other_participants = Participant.objects.filter(
+            conversation_id__in=conversation_ids
+        ).exclude(
+            user_content_type=content_type,
+            user_object_id=profile.id
+        ).select_related('user_content_type') 
+
+
+        other_participants_map = {p.conversation_id: p for p in other_participants}
+
         conversations = Conversation.objects.filter(id__in=conversation_ids)
-    
-        serializer = ConversationSerializer(conversations, many=True, context={'request': request})
+
+        serializer = ConversationListSerializer(
+            conversations,
+            many=True,
+            context={'other_participants_map': other_participants_map}
+        )
         return Response(serializer.data)
