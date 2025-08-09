@@ -57,34 +57,6 @@ TutorHub is a comprehensive online tutoring platform that connects students with
 - **Message Broadcasting**: Instant message delivery
 - **Connection Management**: Automatic reconnection and error handling
 
-## 📁 Project Structure
-
-\`\`\`
-tutorhub/
-├── app/                          # Next.js App Router pages
-│   ├── chat/[conversationId]/    # Real-time chat interface
-│   ├── classroom/                # Classroom management
-│   │   ├── create/               # Classroom creation
-│   │   └── [id]/                 # Individual classroom views
-│   ├── dashboard/                # User dashboards
-│   ├── homeworks/                # Homework management
-│   ├── signin/                   # Authentication
-│   ├── signup/                   # User registration
-│   ├── students/                 # Student management
-│   └── test-*/                   # Development testing pages
-├── components/                   # Reusable React components
-│   ├── chat/                     # Chat-related components
-│   │   ├── ChatRoom.tsx          # Main chat interface
-│   │   ├── ChatMessage.tsx       # Individual message display
-│   │   └── StartChatButton.tsx   # Chat initiation button
-│   └── ui/                       # shadcn/ui components
-├── lib/                          # Utility libraries
-│   ├── api.js                    # API integration layer
-│   ├── websocket.js              # WebSocket management
-│   └── utils.ts                  # Helper functions
-└── README.md                     # Project documentation
-\`\`\`
-
 ## 🔧 Installation & Setup
 
 ### Prerequisites
