@@ -109,9 +109,27 @@ class HomeworksView(APIView):
             serializer = HomeworksViewSerializer(homeworks, many=True)
             return Response(serializer.data)
         
-            
+
+class HomeworkDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]   
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+        homework_id = self.kwargs.get('homework_id')
+        classrooom_id = self.kwargs.get('classroom_id')
+
+        if hasattr(user, 'tutor'):
+              classroom = Classroom.objects.get(id=classrooom_id)
+              if classroom.tutor.user == user:
+                  
+                  homework = HomeworkClassroomAssign.objects.get(id=homework_id)
+                  serializer = HomeworksViewSerializer(homework)
+                  return Response(serializer.data)
+        if hasattr(user, 'student'):
+            pass
 
 class HomeworkViewSubmissions(APIView):
+
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):

@@ -235,8 +235,8 @@ export const api = {
     list: (token) => api.get("/homeworks/", token),
     // Get homeworks for a specific classroom
     getByClassroom: (classroomId, token) => api.get(`/homeworks/classroom/${classroomId}/`, token),
-    // Get specific homework details
-    get: (id, token) => api.get(`/homeworks/${id}/`, token),
+    // UPDATED: Get specific homework details using classroom context
+    get: (classroomId, homeworkId, token) => api.get(`/homeworks/classroom/${classroomId}/homework/${homeworkId}`, token),
     // Create new homework for specific classroom (tutors only)
     create: (classroomId, homeworkData, token) =>
       api.post(`/homeworks/classroom/${classroomId}/assign/`, homeworkData, token, true),
@@ -244,6 +244,9 @@ export const api = {
     submit: (homeworkData, token) => api.post("/homeworks/submit/", homeworkData, token, true),
     // Grade homework (if needed later)
     grade: (homeworkData, token) => api.post("/homeworks/grade/", homeworkData, token, false),
+    // View all submissions for a specific homework
+    getSubmissions: (classroomId, homeworkId, token) =>
+      api.get(`/classroom/${classroomId}/homework/${homeworkId}/`, token),
   },
 
   // Chat endpoints
@@ -276,34 +279,29 @@ export const storage = {
       localStorage.setItem("tutorhub_refresh_token", refreshToken)
     }
   },
-
   getAccessToken: () => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("tutorhub_access_token")
     }
     return null
   },
-
   getRefreshToken: () => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("tutorhub_refresh_token")
     }
     return null
   },
-
   removeTokens: () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("tutorhub_access_token")
       localStorage.removeItem("tutorhub_refresh_token")
     }
   },
-
   setUser: (user) => {
     if (typeof window !== "undefined") {
       localStorage.setItem("tutorhub_user", JSON.stringify(user))
     }
   },
-
   getUser: () => {
     if (typeof window !== "undefined") {
       const user = localStorage.getItem("tutorhub_user")
@@ -311,13 +309,11 @@ export const storage = {
     }
     return null
   },
-
   removeUser: () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("tutorhub_user")
     }
   },
-
   clearAll: () => {
     storage.removeTokens()
     storage.removeUser()

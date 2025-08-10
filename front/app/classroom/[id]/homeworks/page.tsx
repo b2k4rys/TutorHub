@@ -306,12 +306,14 @@ export default function ClassroomHomeworks() {
                         >
                           Edit Homework
                         </Button>
-                        <Button
-                          variant="outline"
-                          className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white bg-transparent"
-                        >
-                          View Submissions
-                        </Button>
+                        <Link href={`/classroom/${classroomId}/homeworks/${homework.id}/submissions`}>
+                          <Button
+                            variant="outline"
+                            className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white bg-transparent"
+                          >
+                            View Submissions
+                          </Button>
+                        </Link>
                       </>
                     )}
                     {attachmentName && (
