@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import HomeworkClassroomAssign, HomeworkSubmission
+from .models import HomeworkClassroomAssign, HomeworkSubmission, HomeworkComments
 from django.core.validators import MaxValueValidator, MinValueValidator 
 from django.utils import timezone
 from django.db import IntegrityError
@@ -65,3 +65,8 @@ class HomeworkViewSubmissionsSerializer(serializers.ModelSerializer):
         model = HomeworkSubmission
         fields = ['id', 'student', 'submitted_at', 'status', 'file', 'score', 'feedback']
     
+class HomeworkCommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HomeworkComments
+        read_only_fields = ['homework', 'user_content_type', 'user_object_id']
+        fields = ['text', ]

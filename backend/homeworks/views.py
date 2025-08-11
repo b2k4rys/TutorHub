@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.generics import CreateAPIView
 from rest_framework import exceptions
 from .models import HomeworkSubmission, HomeworkClassroomAssign
-from .serialziers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer, HomeworkCreateSerializer, HomeworkViewSubmissionsSerializer
+from .serializers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer, HomeworkCreateSerializer, HomeworkViewSubmissionsSerializer
 from rest_framework.response import Response
 from classroom.models import Classroom
 # from django.contrib.auth.models import User
@@ -196,3 +196,20 @@ class HomeworkViewSubmission(APIView):
             return Response(serializer.data)
         except Tutor.DoesNotExist:
             raise exceptions.PermissionDenied("Not tutor of this classroom")
+        
+class HomeworkComment(APIView):
+    def post(self, request, *args, **kwargs):
+        classroom_id = self.kwargs.get('classroom_id')
+        homework_id = self.kwargs.get('homework_id')
+        user = self.request.user
+
+        if hasattr(user, 'tutor'):
+            classroom = Classroom.objects.get(id=classroom_id)
+            if classroom.tutor.user != user:
+                raise exceptions.PermissionDenied('Not tutor of this classroom')
+            if not HomeworkClassroomAssign.objects.filter(id=homework_id).exists():
+                raise exceptions.NotFound("Not found such homework")
+            
+            
+        if hasattr(user, 'student'):
+            pass

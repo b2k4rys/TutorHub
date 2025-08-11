@@ -1,5 +1,6 @@
 from django.db import models
-
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 # Create your models here.
 class HomeworkClassroomAssign(models.Model):
 
@@ -36,3 +37,12 @@ class HomeworkSubmission(models.Model):
     
     class Meta:
         constraints = [models.UniqueConstraint(fields=['student', 'homework'], name='unique_student_homework')]
+
+class HomeworkComments(models.Model):
+    homework = models.ForeignKey(HomeworkClassroomAssign, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    text = models.TextField()
+    user_content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    user_object_id = models.PositiveIntegerField()
+    user = GenericForeignKey('user_content_type', 'user_object_id')
+    

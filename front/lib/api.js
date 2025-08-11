@@ -246,7 +246,7 @@ export const api = {
     grade: (homeworkData, token) => api.post("/homeworks/grade/", homeworkData, token, false),
     // View all submissions for a specific homework
     getSubmissions: (classroomId, homeworkId, token) =>
-      api.get(`/classroom/${classroomId}/homework/${homeworkId}/`, token),
+      api.get(`/homeworks/classroom/${classroomId}/homework/${homeworkId}/`, token),
   },
 
   // Chat endpoints
