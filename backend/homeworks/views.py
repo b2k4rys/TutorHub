@@ -211,12 +211,21 @@ class HomeworkCommentCreateView(APIView):
             homework = HomeworkClassroomAssign.objects.filter(id=homework_id).first()
             if not homework:
                 raise exceptions.NotFound("Not found such homework")
-            tutor_content_type = ContentType.objects.get_for_model(Tutor)
             comments = HomeworkComments.objects.filter(homework_id=homework.id).all()
             serializer = HomeworkAllCommentSerializer(comments, many=True)
             return Response(serializer.data)
+        
         if hasattr(user, 'student'):
-            pass
+            classroom = Classroom.objects.get(id=classroom_id)
+            student_profile = user.student
+            if student_profile not in classroom.students.all():
+                raise exceptions.PermissionDenied('You are not a student in this classroom')
+            homework = HomeworkClassroomAssign.objects.filter(id=homework_id).first()
+            if not homework:
+                raise exceptions.NotFound("Not found such homework")
+            comments = HomeworkComments.objects.filter(homework_id=homework.id).all()
+            serializer = HomeworkAllCommentSerializer(comments, many=True)
+            return Response(serializer.data)
 
 
     def post(self, request, *args, **kwargs):
