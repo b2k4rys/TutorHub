@@ -69,4 +69,4 @@ class HomeworkCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = HomeworkComments
         read_only_fields = ['homework', 'user_content_type', 'user_object_id']
-        fields = ['text', ]
+        fields = ['text']

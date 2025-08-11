@@ -7,9 +7,10 @@ from rest_framework.exceptions import NotFound
 from rest_framework.generics import CreateAPIView
 from rest_framework import exceptions
 from .models import HomeworkSubmission, HomeworkClassroomAssign
-from .serializers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer, HomeworkCreateSerializer, HomeworkViewSubmissionsSerializer
+from .serializers import HomeworkGradeSerializer, HomeworkSubmitSerializer, HomeworksViewSerializer, HomeworkCreateSerializer, HomeworkViewSubmissionsSerializer, HomeworkCommentSerializer
 from rest_framework.response import Response
 from classroom.models import Classroom
+from django.contrib.contenttypes.models import ContentType
 # from django.contrib.auth.models import User
 # Create your views here.
 
@@ -207,9 +208,15 @@ class HomeworkComment(APIView):
             classroom = Classroom.objects.get(id=classroom_id)
             if classroom.tutor.user != user:
                 raise exceptions.PermissionDenied('Not tutor of this classroom')
-            if not HomeworkClassroomAssign.objects.filter(id=homework_id).exists():
+            homework = HomeworkClassroomAssign.objects.filter(id=homework_id).first()
+            if not homework:
                 raise exceptions.NotFound("Not found such homework")
-            
+            tutor_content_type = ContentType.objects.get_for_model(Tutor)
+            serializer = HomeworkCommentSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(homework=homework, user_content_type=tutor_content_type, user_object_id=user.id)
+            return Response('commented successfully')
+
             
         if hasattr(user, 'student'):
             pass
