@@ -236,7 +236,7 @@ export const api = {
     // Get homeworks for a specific classroom
     getByClassroom: (classroomId, token) => api.get(`/homeworks/classroom/${classroomId}/`, token),
     // UPDATED: Get specific homework details using classroom context
-    get: (classroomId, homeworkId, token) => api.get(`/homeworks/classroom/${classroomId}/homework/${homeworkId}`, token),
+    get: (classroomId, homeworkId, token) => api.get(`/classroom/${classroomId}/homework/${homeworkId}`, token),
     // Create new homework for specific classroom (tutors only)
     create: (classroomId, homeworkData, token) =>
       api.post(`/homeworks/classroom/${classroomId}/assign/`, homeworkData, token, true),
@@ -246,7 +246,13 @@ export const api = {
     grade: (homeworkData, token) => api.post("/homeworks/grade/", homeworkData, token, false),
     // View all submissions for a specific homework
     getSubmissions: (classroomId, homeworkId, token) =>
-      api.get(`/homeworks/classroom/${classroomId}/homework/${homeworkId}/`, token),
+      api.get(`/classroom/${classroomId}/homework/${homeworkId}/`, token),
+    // Get comments for a specific homework
+    getComments: (classroomId, homeworkId, token) =>
+      api.get(`/homeworks/classroom/${classroomId}/homework/${homeworkId}/comment/`, token),
+    // Post a new comment on a homework
+    postComment: (classroomId, homeworkId, commentData, token) =>
+      api.post(`/homeworks/classroom/${classroomId}/homework/${homeworkId}/comment/`, commentData, token, false),
   },
 
   // Chat endpoints

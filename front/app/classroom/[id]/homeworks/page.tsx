@@ -12,6 +12,9 @@ export default function ClassroomHomeworks() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [userRole, setUserRole] = useState(null) // 'tutor' or 'student'
+  const [comments, setComments] = useState({}) // Store comments by homework ID
+  const [newComment, setNewComment] = useState({}) // Store new comment text by homework ID
+  const [commentLoading, setCommentLoading] = useState({}) // Track loading state for comments
   const router = useRouter()
   const params = useParams()
   const classroomId = params.id
@@ -117,6 +120,54 @@ export default function ClassroomHomeworks() {
   const getAttachmentName = (attachmentPath) => {
     if (!attachmentPath) return null
     return attachmentPath.split("/").pop()
+  }
+
+  const loadComments = async (homeworkId) => {
+    const token = storage.getAccessToken()
+    if (!token) return
+
+    try {
+      setCommentLoading((prev) => ({ ...prev, [homeworkId]: true }))
+      const commentsData = await api.homeworks.getComments(classroomId, homeworkId, token)
+      setComments((prev) => ({ ...prev, [homeworkId]: Array.isArray(commentsData) ? commentsData : [] }))
+    } catch (error) {
+      console.error("Failed to load comments:", error)
+      setComments((prev) => ({ ...prev, [homeworkId]: [] }))
+    } finally {
+      setCommentLoading((prev) => ({ ...prev, [homeworkId]: false }))
+    }
+  }
+
+  const postComment = async (homeworkId) => {
+    const token = storage.getAccessToken()
+    const commentText = newComment[homeworkId]?.trim()
+
+    if (!token || !commentText) return
+
+    try {
+      await api.homeworks.postComment(classroomId, homeworkId, { text: commentText }, token)
+      setNewComment((prev) => ({ ...prev, [homeworkId]: "" }))
+      // Reload comments to show the new one
+      await loadComments(homeworkId)
+    } catch (error) {
+      console.error("Failed to post comment:", error)
+      setError("Failed to post comment: " + error.message)
+    }
+  }
+
+  const formatCommentDate = (dateString) => {
+    if (!dateString) return ""
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return ""
+    }
   }
 
   if (loading) {
@@ -325,7 +376,84 @@ export default function ClassroomHomeworks() {
                         Download
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white bg-transparent"
+                      onClick={() => {
+                        if (comments[homework.id]) {
+                          // Hide comments
+                          setComments((prev) => ({ ...prev, [homework.id]: null }))
+                        } else {
+                          // Load and show comments
+                          loadComments(homework.id)
+                        }
+                      }}
+                    >
+                      {comments[homework.id] ? "Hide Comments" : "Show Comments"}
+                    </Button>
                   </div>
+
+                  {/* Comments Section */}
+                  {comments[homework.id] && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-lg font-semibold text-black mb-4">Discussion</h4>
+
+                      {/* Comments List */}
+                      <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+                        {commentLoading[homework.id] ? (
+                          <div className="text-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+                          </div>
+                        ) : comments[homework.id].length === 0 ? (
+                          <p className="text-gray-500 text-sm italic">No comments yet. Start the discussion!</p>
+                        ) : (
+                          comments[homework.id].map((comment, index) => (
+                            <div key={index} className="bg-gray-50 rounded-lg p-3">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-sm text-gray-800">{comment.username}</span>
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      comment.user_type === "Tutor"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-blue-100 text-blue-800"
+                                    }`}
+                                  >
+                                    {comment.user_type}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-500">{formatCommentDate(comment.timestamp)}</span>
+                              </div>
+                              <p className="text-gray-700 text-sm">{comment.text}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Add Comment Form */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newComment[homework.id] || ""}
+                          onChange={(e) => setNewComment((prev) => ({ ...prev, [homework.id]: e.target.value }))}
+                          placeholder="Add a comment..."
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              postComment(homework.id)
+                            }
+                          }}
+                        />
+                        <Button
+                          onClick={() => postComment(homework.id)}
+                          disabled={!newComment[homework.id]?.trim()}
+                          className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300"
+                        >
+                          Post
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}

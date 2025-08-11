@@ -8,26 +8,75 @@ import { api, storage } from "../../../lib/api"
 
 export default function HomeworkDetail() {
   const [homework, setHomework] = useState(null)
+  const [classroom, setClassroom] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [userRole, setUserRole] = useState(null)
+  const [comments, setComments] = useState([])
+  const [newComment, setNewComment] = useState("")
+  const [commentLoading, setCommentLoading] = useState(false)
+  const [postingComment, setPostingComment] = useState(false)
   const router = useRouter()
   const params = useParams()
   const homeworkId = params.id
 
   useEffect(() => {
     const token = storage.getAccessToken()
+    const user = storage.getUser()
+
     if (!token) {
       router.push("/signin")
       return
     }
 
-    const loadHomework = async () => {
+    const loadHomeworkDetails = async () => {
       try {
-        const homeworkData = await api.homeworks.get(homeworkId, token)
-        console.log("Homework detail data:", homeworkData) // Debug log
-        setHomework(homeworkData)
+        // First, we need to find which classroom this homework belongs to
+        // We'll get this from the homework data or we might need to modify the API
+        // For now, let's try to get homework details and extract classroom info
+
+        // Note: We might need to modify this based on your actual API structure
+        // The current API structure suggests we need classroomId to get homework details
+        // Let's try a different approach - get all classrooms and find the one with this homework
+
+        const classrooms = await api.classroom.list(token)
+        let foundHomework = null
+        let foundClassroom = null
+
+        for (const classroom of classrooms) {
+          try {
+            const homeworks = await api.homeworks.getByClassroom(classroom.id, token)
+            const homework = homeworks.find((hw) => hw.id.toString() === homeworkId)
+            if (homework) {
+              foundHomework = homework
+              foundClassroom = classroom
+              break
+            }
+          } catch (err) {
+            // Continue searching in other classrooms
+            continue
+          }
+        }
+
+        if (!foundHomework) {
+          setError("Homework not found or you don't have permission to view it.")
+          return
+        }
+
+        setHomework(foundHomework)
+        setClassroom(foundClassroom)
+
+        // Determine user role
+        if (user && foundClassroom.tutor.username === user.username) {
+          setUserRole("tutor")
+        } else {
+          setUserRole("student")
+        }
+
+        // Load comments
+        await loadComments(foundClassroom.id, homeworkId, token)
       } catch (error) {
-        console.error("Failed to load homework:", error)
+        console.error("Failed to load homework details:", error)
         setError("Failed to load homework details: " + error.message)
       } finally {
         setLoading(false)
@@ -35,9 +84,42 @@ export default function HomeworkDetail() {
     }
 
     if (homeworkId) {
-      loadHomework()
+      loadHomeworkDetails()
     }
   }, [router, homeworkId])
+
+  const loadComments = async (classroomId, homeworkId, token) => {
+    try {
+      setCommentLoading(true)
+      const commentsData = await api.homeworks.getComments(classroomId, homeworkId, token)
+      setComments(Array.isArray(commentsData) ? commentsData : [])
+    } catch (error) {
+      console.error("Failed to load comments:", error)
+      setComments([])
+    } finally {
+      setCommentLoading(false)
+    }
+  }
+
+  const handlePostComment = async () => {
+    if (!newComment.trim() || !classroom) return
+
+    try {
+      setPostingComment(true)
+      const token = storage.getAccessToken()
+
+      await api.homeworks.postComment(classroom.id, homeworkId, { text: newComment.trim() }, token)
+
+      // Reload comments
+      await loadComments(classroom.id, homeworkId, token)
+      setNewComment("")
+    } catch (error) {
+      console.error("Failed to post comment:", error)
+      alert("Failed to post comment: " + error.message)
+    } finally {
+      setPostingComment(false)
+    }
+  }
 
   const formatDate = (dateString) => {
     if (!dateString) return "No due date"
@@ -70,23 +152,27 @@ export default function HomeworkDetail() {
 
   const getDueDateStatus = (dateString) => {
     const days = getDaysUntilDue(dateString)
-    if (days === null) return { text: "", color: "text-gray-500", bgColor: "bg-gray-100" }
-    if (days < 0)
-      return {
-        text: `${Math.abs(days)} days overdue`,
-        color: "text-red-800",
-        bgColor: "bg-red-100",
-      }
-    if (days === 0) return { text: "Due today", color: "text-red-800", bgColor: "bg-red-100" }
-    if (days === 1) return { text: "Due tomorrow", color: "text-orange-800", bgColor: "bg-orange-100" }
-    if (days <= 3) return { text: `Due in ${days} days`, color: "text-orange-800", bgColor: "bg-orange-100" }
-    if (days <= 7) return { text: `Due in ${days} days`, color: "text-yellow-800", bgColor: "bg-yellow-100" }
-    return { text: `Due in ${days} days`, color: "text-green-800", bgColor: "bg-green-100" }
+    if (days === null) return { text: "", color: "text-gray-500" }
+    if (days < 0) return { text: `${Math.abs(days)} days overdue`, color: "text-red-600" }
+    if (days === 0) return { text: "Due today", color: "text-red-500" }
+    if (days === 1) return { text: "Due tomorrow", color: "text-orange-500" }
+    if (days <= 3) return { text: `Due in ${days} days`, color: "text-orange-500" }
+    if (days <= 7) return { text: `Due in ${days} days`, color: "text-yellow-600" }
+    return { text: `Due in ${days} days`, color: "text-green-600" }
   }
 
   const getAttachmentName = (attachmentPath) => {
     if (!attachmentPath) return null
     return attachmentPath.split("/").pop()
+  }
+
+  const getSubjectName = (subject) => {
+    const subjects = {
+      MATH: "Mathematics",
+      ENGLISH: "English",
+      OTHER: "Other",
+    }
+    return subjects[subject] || subject
   }
 
   if (loading) {
@@ -100,30 +186,32 @@ export default function HomeworkDetail() {
     )
   }
 
-  if (error || !homework) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-white">
-        <nav className="border-b border-gray-200 px-6 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link href="/dashboard" className="text-2xl font-bold text-black">
-              TutorHub
-            </Link>
-            <Link href="/homeworks">
-              <Button
-                variant="outline"
-                className="border-black text-black hover:bg-black hover:text-white bg-transparent"
-              >
-                Back to Homeworks
-              </Button>
-            </Link>
-          </div>
-        </nav>
-        <div className="max-w-4xl mx-auto px-6 py-16 text-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
           <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-2xl font-bold text-black mb-4">Homework Not Found</h1>
-          <p className="text-gray-600 mb-8">{error || "The requested homework could not be found."}</p>
-          <Link href="/homeworks">
-            <Button className="bg-black text-white hover:bg-gray-800">Back to Homeworks</Button>
+          <h2 className="text-2xl font-bold text-black mb-4">Error</h2>
+          <p className="text-gray-600 mb-8">{error}</p>
+          <Link href="/dashboard">
+            <Button className="bg-black text-white hover:bg-gray-800">Back to Dashboard</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!homework || !classroom) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">📝</div>
+          <h2 className="text-2xl font-bold text-black mb-4">Homework Not Found</h2>
+          <p className="text-gray-600 mb-8">
+            The homework you're looking for doesn't exist or you don't have permission to view it.
+          </p>
+          <Link href="/dashboard">
+            <Button className="bg-black text-white hover:bg-gray-800">Back to Dashboard</Button>
           </Link>
         </div>
       </div>
@@ -142,12 +230,20 @@ export default function HomeworkDetail() {
             TutorHub
           </Link>
           <div className="flex gap-4">
-            <Link href="/homeworks">
+            <Link href={`/classroom/${classroom.id}/homeworks`}>
               <Button
                 variant="outline"
                 className="border-black text-black hover:bg-black hover:text-white bg-transparent"
               >
                 Back to Homeworks
+              </Button>
+            </Link>
+            <Link href={`/classroom/${classroom.id}`}>
+              <Button
+                variant="outline"
+                className="border-black text-black hover:bg-black hover:text-white bg-transparent"
+              >
+                Back to Classroom
               </Button>
             </Link>
             <Link href="/dashboard">
@@ -162,176 +258,168 @@ export default function HomeworkDetail() {
         </div>
       </nav>
 
-      {/* Homework Details */}
+      {/* Main Content */}
       <main className="max-w-4xl mx-auto px-6 py-16">
         {/* Header Section */}
-        <div className="mb-12">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-4 mb-4">
-                <h1 className="text-4xl font-bold text-black">{homework.title}</h1>
-                {homework.is_optional && (
-                  <span className="px-4 py-2 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-                    Optional Assignment
-                  </span>
-                )}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <h1 className="text-4xl font-bold text-black">{homework.title}</h1>
+            {homework.is_optional && (
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">Optional</span>
+            )}
+          </div>
+          <div className="flex items-center gap-6 text-gray-600">
+            <span>
+              {getSubjectName(classroom.subject)} • Classroom #{classroom.id}
+            </span>
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                userRole === "tutor" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+              }`}
+            >
+              {userRole === "tutor" ? "👨‍🏫 Tutor View" : "👨‍🎓 Student View"}
+            </span>
+          </div>
+        </div>
+
+        {/* Homework Details Card */}
+        <div className="bg-white border border-gray-200 rounded-lg p-8 mb-8 shadow-sm">
+          {/* Due Date Section */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-black mb-1">Due Date</h3>
+                <p className="text-gray-800 font-medium">{formatDate(homework.due_date)}</p>
               </div>
-              <p className="text-xl text-gray-600 leading-relaxed">{homework.description}</p>
+              {dueDateStatus.text && (
+                <div className="text-right">
+                  <p className={`text-lg font-bold ${dueDateStatus.color}`}>{dueDateStatus.text}</p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Due Date Status */}
-          {dueDateStatus.text && (
-            <div className={`inline-flex items-center px-4 py-2 rounded-lg ${dueDateStatus.bgColor} mb-6`}>
-              <span className="mr-2">⏰</span>
-              <span className={`font-medium ${dueDateStatus.color}`}>{dueDateStatus.text}</span>
+          {/* Description Section */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-black mb-3">Description</h3>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{homework.description}</p>
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Assignment Details */}
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h2 className="text-xl font-bold text-black mb-4 flex items-center">
-                <span className="mr-2">📋</span>
-                Assignment Details
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Title</p>
-                  <p className="text-black">{homework.title}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Description</p>
-                  <p className="text-black leading-relaxed">{homework.description}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Assignment Type</p>
-                  <p className="text-black">{homework.is_optional ? "Optional" : "Required"}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Attachment Section */}
-            {attachmentName && (
-              <div className="border border-gray-200 rounded-lg p-6">
-                <h2 className="text-xl font-bold text-black mb-4 flex items-center">
-                  <span className="mr-2">📎</span>
-                  Attachment
-                </h2>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        📄
-                      </div>
-                      <div>
-                        <p className="font-medium text-black">{attachmentName}</p>
-                        <p className="text-sm text-gray-600">Click to download or view</p>
-                      </div>
+          {/* Attachment Section */}
+          {attachmentName && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-black mb-3">Attachment</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📎</span>
+                    <div>
+                      <p className="font-medium text-gray-800">{attachmentName}</p>
+                      <p className="text-sm text-gray-600">Click to download</p>
                     </div>
-                    <Button
-                      onClick={() => window.open(`http://localhost:8000${homework.attachment}`, "_blank")}
-                      className="bg-black text-white hover:bg-gray-800"
-                    >
-                      Open File
-                    </Button>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Submission Section */}
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h2 className="text-xl font-bold text-black mb-4 flex items-center">
-                <span className="mr-2">📤</span>
-                Submit Your Work
-              </h2>
-              <div className="space-y-4">
-                <p className="text-gray-600">Ready to submit your assignment? Upload your completed work below.</p>
-                <div className="flex gap-3">
-                  <Button className="bg-black text-white hover:bg-gray-800">Upload Submission</Button>
                   <Button
                     variant="outline"
                     className="border-black text-black hover:bg-black hover:text-white bg-transparent"
-                  >
-                    Save as Draft
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Due Date Info */}
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h2 className="text-xl font-bold text-black mb-4 flex items-center">
-                <span className="mr-2">📅</span>
-                Due Date
-              </h2>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Due</p>
-                  <p className="text-black">{formatDate(homework.due_date)}</p>
-                </div>
-                {dueDateStatus.text && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Status</p>
-                    <p className={`font-medium ${dueDateStatus.color}`}>{dueDateStatus.text}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h2 className="text-xl font-bold text-black mb-4 flex items-center">
-                <span className="mr-2">⚡</span>
-                Quick Actions
-              </h2>
-              <div className="space-y-3">
-                <Button className="w-full bg-black text-white hover:bg-gray-800">Submit Work</Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-black text-black hover:bg-black hover:text-white bg-transparent"
-                >
-                  Ask Question
-                </Button>
-                {attachmentName && (
-                  <Button
-                    variant="outline"
-                    className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
                     onClick={() => window.open(`http://localhost:8000${homework.attachment}`, "_blank")}
                   >
-                    Download Attachment
+                    Download
                   </Button>
-                )}
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Assignment Info */}
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h2 className="text-xl font-bold text-black mb-4 flex items-center">
-                <span className="mr-2">ℹ️</span>
-                Assignment Info
-              </h2>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Assignment ID</span>
-                  <span className="font-medium text-black">#{homework.id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Type</span>
-                  <span className="font-medium text-black">{homework.is_optional ? "Optional" : "Required"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Has Attachment</span>
-                  <span className="font-medium text-black">{attachmentName ? "Yes" : "No"}</span>
-                </div>
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            {userRole === "student" && <Button className="bg-black text-white hover:bg-gray-800">Submit Work</Button>}
+            {userRole === "tutor" && (
+              <>
+                <Button
+                  variant="outline"
+                  className="border-black text-black hover:bg-black hover:text-white bg-transparent"
+                >
+                  Edit Homework
+                </Button>
+                <Link href={`/classroom/${classroom.id}/homeworks/${homework.id}/submissions`}>
+                  <Button
+                    variant="outline"
+                    className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white bg-transparent"
+                  >
+                    View Submissions
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+          <h3 className="text-2xl font-bold text-black mb-6">Discussion</h3>
+
+          {/* Comments List */}
+          <div className="space-y-4 mb-6">
+            {commentLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading comments...</p>
               </div>
+            ) : comments.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">💬</div>
+                <p className="text-gray-500 text-lg">No comments yet. Start the discussion!</p>
+              </div>
+            ) : (
+              comments.map((comment, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-gray-800">{comment.username}</span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          comment.user_type === "Tutor" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {comment.user_type}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      {new Date(comment.timestamp).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-gray-800 leading-relaxed">{comment.text}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Add Comment Form */}
+          <div className="border-t border-gray-200 pt-6">
+            <h4 className="text-lg font-semibold text-black mb-3">Add a Comment</h4>
+            <div className="flex gap-3">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Share your thoughts, ask questions, or provide feedback..."
+                className="flex-1 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+                disabled={postingComment}
+              />
+              <Button
+                onClick={handlePostComment}
+                disabled={!newComment.trim() || postingComment}
+                className="bg-black text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed px-6"
+              >
+                {postingComment ? "Posting..." : "Post"}
+              </Button>
             </div>
           </div>
         </div>
@@ -340,7 +428,12 @@ export default function HomeworkDetail() {
         {process.env.NODE_ENV === "development" && (
           <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <h3 className="font-bold text-gray-800 mb-2">Debug Info (Development Only):</h3>
-            <pre className="text-xs text-gray-600 overflow-auto">{JSON.stringify(homework, null, 2)}</pre>
+            <p className="text-sm text-gray-600 mb-2">Homework ID: {homeworkId}</p>
+            <p className="text-sm text-gray-600 mb-2">Classroom ID: {classroom.id}</p>
+            <p className="text-sm text-gray-600 mb-2">User Role: {userRole}</p>
+            <pre className="text-xs text-gray-600 overflow-auto max-h-40">
+              {JSON.stringify({ homework, classroom }, null, 2)}
+            </pre>
           </div>
         )}
       </main>

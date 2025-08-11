@@ -19,6 +19,10 @@ export default function HomeworkSubmissions() {
     graded: 0,
     pending: 0,
   })
+  const [comments, setComments] = useState([])
+  const [newComment, setNewComment] = useState("")
+  const [commentLoading, setCommentLoading] = useState(false)
+  const [showComments, setShowComments] = useState(false)
 
   const router = useRouter()
   const params = useParams()
@@ -81,6 +85,54 @@ export default function HomeworkSubmissions() {
       loadData()
     }
   }, [router, classroomId, homeworkId])
+
+  const loadComments = async () => {
+    const token = storage.getAccessToken()
+    if (!token) return
+
+    try {
+      setCommentLoading(true)
+      const commentsData = await api.homeworks.getComments(classroomId, homeworkId, token)
+      setComments(Array.isArray(commentsData) ? commentsData : [])
+    } catch (error) {
+      console.error("Failed to load comments:", error)
+      setComments([])
+    } finally {
+      setCommentLoading(false)
+    }
+  }
+
+  const postComment = async () => {
+    const token = storage.getAccessToken()
+    const commentText = newComment.trim()
+
+    if (!token || !commentText) return
+
+    try {
+      await api.homeworks.postComment(classroomId, homeworkId, { text: commentText }, token)
+      setNewComment("")
+      // Reload comments to show the new one
+      await loadComments()
+    } catch (error) {
+      console.error("Failed to post comment:", error)
+      setError("Failed to post comment: " + error.message)
+    }
+  }
+
+  const formatCommentDate = (dateString) => {
+    if (!dateString) return ""
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return ""
+    }
+  }
 
   const formatDate = (dateString) => {
     if (!dateString) return "Not submitted"
@@ -192,7 +244,25 @@ export default function HomeworkSubmissions() {
         {homework && (
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle className="text-xl">Homework Details</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl">Homework Details</CardTitle>
+                <Button
+                  variant="outline"
+                  className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white bg-transparent"
+                  onClick={() => {
+                    if (showComments) {
+                      setShowComments(false)
+                    } else {
+                      setShowComments(true)
+                      if (comments.length === 0) {
+                        loadComments()
+                      }
+                    }
+                  }}
+                >
+                  {showComments ? "Hide Discussion" : "Show Discussion"}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-6">
@@ -217,6 +287,67 @@ export default function HomeworkSubmissions() {
                   </span>
                 </div>
               </div>
+
+              {showComments && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h4 className="text-lg font-semibold text-black mb-4">Discussion</h4>
+
+                  {/* Comments List */}
+                  <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+                    {commentLoading ? (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+                      </div>
+                    ) : comments.length === 0 ? (
+                      <p className="text-gray-500 text-sm italic">No comments yet. Start the discussion!</p>
+                    ) : (
+                      comments.map((comment, index) => (
+                        <div key={index} className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm text-gray-800">{comment.username}</span>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  comment.user_type === "Tutor"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}
+                              >
+                                {comment.user_type}
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-500">{formatCommentDate(comment.timestamp)}</span>
+                          </div>
+                          <p className="text-gray-700 text-sm">{comment.text}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Comment Form */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Add a comment..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          postComment()
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={postComment}
+                      disabled={!newComment.trim()}
+                      className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300"
+                    >
+                      Post
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
