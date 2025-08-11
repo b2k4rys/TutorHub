@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import HomeworkCreateView, HomeworkSubmitView, HomeworkGrade, HomeworksView, HomeworkViewSubmissions, HomeworkViewSubmission, HomeworkDetailView, HomeworkComment
+from .views import HomeworkCreateView, HomeworkSubmitView, HomeworkGrade, HomeworksView, HomeworkViewSubmissions, HomeworkViewSubmission, HomeworkDetailView, HomeworkCommentCreateView
 
 urlpatterns = [
     path("classroom/<int:classroom_id>/assign/", HomeworkCreateView.as_view()),
@@ -19,6 +19,6 @@ urlpatterns = [
 
 
     # ADD COMMENT TO THE HOMEWORK
-    path('classroom/<int:classroom_id>/homework/<int:homework_id>/comment/', HomeworkComment.as_view())
+    path('classroom/<int:classroom_id>/homework/<int:homework_id>/comment/', HomeworkCommentCreateView.as_view())
 ]
 

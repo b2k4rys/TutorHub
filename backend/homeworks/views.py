@@ -198,7 +198,7 @@ class HomeworkViewSubmission(APIView):
         except Tutor.DoesNotExist:
             raise exceptions.PermissionDenied("Not tutor of this classroom")
         
-class HomeworkComment(APIView):
+class HomeworkCommentCreateView(APIView):
     def post(self, request, *args, **kwargs):
         classroom_id = self.kwargs.get('classroom_id')
         homework_id = self.kwargs.get('homework_id')
@@ -207,7 +207,7 @@ class HomeworkComment(APIView):
         if hasattr(user, 'tutor'):
             classroom = Classroom.objects.get(id=classroom_id)
             if classroom.tutor.user != user:
-                raise exceptions.PermissionDenied('Not tutor of this classroom')
+                raise exceptions.PermissionDenied('You are not a tutor in this classroom')
             homework = HomeworkClassroomAssign.objects.filter(id=homework_id).first()
             if not homework:
                 raise exceptions.NotFound("Not found such homework")
@@ -219,4 +219,20 @@ class HomeworkComment(APIView):
 
             
         if hasattr(user, 'student'):
-            pass
+            classroom = Classroom.objects.get(id=classroom_id)
+            student_profile = user.student
+            if student_profile not in classroom.students.all():
+                raise exceptions.PermissionDenied('You are not a student in this classroom')
+            
+            homework = HomeworkClassroomAssign.objects.filter(id=homework_id).first()
+            if not homework:
+                raise exceptions.NotFound("Not found such homework")
+            student_content_type = ContentType.objects.get_for_model(Student)
+            serializer = HomeworkCommentSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(homework=homework, user_content_type=student_content_type, user_object_id=user.id)
+            return Response('commented successfully')
+        
+# class HomeworkCommentView(APIView):
+#     def get(self, request, *args, **kwargs):
+#         user = self.request.user
