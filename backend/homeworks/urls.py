@@ -18,7 +18,7 @@ urlpatterns = [
     path('classroom/<int:classroom_id>/homework/<int:assigned_homework_id>/submission/<int:submission_id>/', HomeworkViewSubmission.as_view(),name="View particular homework submission"),
 
 
-    # ADD COMMENT TO THE HOMEWORK
-    path('classroom/<int:classroom_id>/homework/<int:homework_id>/comment/', HomeworkCommentCreateView.as_view())
+    # ADD, READ COMMENTS OF THE HOMEWORK
+    path('classroom/<int:classroom_id>/homework/<int:homework_id>/comment/', HomeworkCommentCreateView.as_view()),
 ]
 

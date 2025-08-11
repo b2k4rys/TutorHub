@@ -11,22 +11,20 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ['id', 'sender_name', 'content', 'timestamp']
+
 # A generic serializer to display any user profile (Tutor or Student)
-class GenericUserSerializer(serializers.ModelSerializer):
+class GenericUserSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
     role = serializers.SerializerMethodField()
 
     def get_role(self, obj):
         return obj.__class__.__name__
 
-    class Meta:
-        fields = ['id', 'role'] 
-        
     def to_representation(self, instance):
         if isinstance(instance, Tutor):
-            return TutorDetailViewSerializer(instance).data 
+            return TutorDetailViewSerializer(instance, context=self.context).data 
         if isinstance(instance, Student):
-    
-            return StudentStudentDetailViewSerializer(instance).data
+            return StudentStudentDetailViewSerializer(instance, context=self.context).data
         return super().to_representation(instance)
 
 # A serializer for the Participant model to fetch user details

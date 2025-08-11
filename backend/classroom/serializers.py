@@ -61,3 +61,4 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Classroom
         fields = ['id', 'subject', 'classroom_type', 'students', 'tutor']
+

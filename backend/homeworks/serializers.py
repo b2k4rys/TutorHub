@@ -4,6 +4,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils import timezone
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
+from django.contrib.auth.models import User
+from tutors.models import Tutor
 class HomeworkCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = HomeworkClassroomAssign
@@ -70,3 +72,18 @@ class HomeworkCommentSerializer(serializers.ModelSerializer):
         model = HomeworkComments
         read_only_fields = ['homework', 'user_content_type', 'user_object_id']
         fields = ['text']
+    
+class HomeworkAllCommentSerializer(serializers.ModelSerializer):
+
+    user_type = serializers.SerializerMethodField()
+    username = serializers.SerializerMethodField()
+    class Meta:
+        model = HomeworkComments
+        read_only_fields = ['user', 'user_content_type', 'user_object_id']
+        fields = ['username', 'user_type', 'text', 'timestamp']
+
+    def get_user_type(self, obj):
+        return obj.user.__class__.__name__
+        
+    def get_username(self, obj):
+        return obj.user.user.username
