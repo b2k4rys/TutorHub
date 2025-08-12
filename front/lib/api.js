@@ -241,8 +241,7 @@ export const api = {
     // Create new homework for specific classroom (tutors only)
     create: (classroomId, homeworkData, token) =>
       api.post(`/homeworks/classroom/${classroomId}/assign/`, homeworkData, token, true),
-    // Submit homework (if needed later)
-    submit: (homeworkData, token) => api.post("/homeworks/submit/", homeworkData, token, true),
+    submit: (homeworkId, formData, token) => api.post(`/homeworks/${homeworkId}/submit/`, formData, token, true),
     // Grade homework (if needed later)
     grade: (homeworkData, token) => api.post("/homeworks/grade/", homeworkData, token, false),
     getSubmissions: (classroomId, homeworkId, token) =>

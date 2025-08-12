@@ -342,7 +342,7 @@ export default function ClassroomHomeworks() {
                       <Button className="bg-black text-white hover:bg-gray-800">View Details</Button>
                     </Link>
                     {userRole === "student" && (
-                      <Link href={`/homeworks/${homework.id}/submit`}>
+                      <Link href={`/homeworks/${homework.id}`}>
                         <Button
                           variant="outline"
                           className="border-black text-black hover:bg-black hover:text-white bg-transparent"

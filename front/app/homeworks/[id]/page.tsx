@@ -16,6 +16,10 @@ export default function HomeworkDetail() {
   const [newComment, setNewComment] = useState("")
   const [commentLoading, setCommentLoading] = useState(false)
   const [postingComment, setPostingComment] = useState(false)
+  const [showSubmissionForm, setShowSubmissionForm] = useState(false)
+  const [submissionFile, setSubmissionFile] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [hasSubmitted, setHasSubmitted] = useState(false)
   const router = useRouter()
   const params = useParams()
   const homeworkId = params.id
@@ -124,6 +128,43 @@ export default function HomeworkDetail() {
       alert("Failed to post comment: " + error.message)
     } finally {
       setPostingComment(false)
+    }
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    setSubmissionFile(file)
+  }
+
+  const handleSubmitHomework = async () => {
+    if (!submissionFile) {
+      alert("Please select a file to submit")
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      const token = storage.getAccessToken()
+
+      const formData = new FormData()
+      formData.append("file", submissionFile)
+
+      await api.homeworks.submit(homeworkId, formData, token)
+
+      alert("Homework submitted successfully!")
+      setShowSubmissionForm(false)
+      setSubmissionFile(null)
+      setHasSubmitted(true)
+    } catch (error) {
+      console.error("Failed to submit homework:", error)
+      if (error.message.includes("already submitted")) {
+        alert("You have already submitted this homework")
+        setHasSubmitted(true)
+      } else {
+        alert("Failed to submit homework: " + error.message)
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -340,7 +381,19 @@ export default function HomeworkDetail() {
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
-            {userRole === "student" && <Button className="bg-black text-white hover:bg-gray-800">Submit Work</Button>}
+            {userRole === "student" && (
+              <>
+                {!hasSubmitted ? (
+                  <Button className="bg-black text-white hover:bg-gray-800" onClick={() => setShowSubmissionForm(true)}>
+                    Submit Work
+                  </Button>
+                ) : (
+                  <Button disabled className="bg-gray-400 text-white cursor-not-allowed">
+                    Already Submitted
+                  </Button>
+                )}
+              </>
+            )}
             {userRole === "tutor" && (
               <>
                 <Button
@@ -429,6 +482,65 @@ export default function HomeworkDetail() {
             </div>
           </div>
         </div>
+
+        {/* Submission Modal */}
+        {showSubmissionForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+              <h3 className="text-2xl font-bold text-black mb-6">Submit Homework</h3>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload your work</label>
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                  disabled={submitting}
+                />
+                <p className="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX, TXT, JPG, PNG</p>
+              </div>
+
+              {submissionFile && (
+                <div className="mb-6 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    <strong>Selected file:</strong> {submissionFile.name}
+                  </p>
+                  <p className="text-xs text-gray-500">Size: {(submissionFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+              )}
+
+              {dueDateStatus.text && getDaysUntilDue(homework.due_date) < 0 && (
+                <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">
+                    ⚠️ This homework is overdue. Your submission will be marked as late.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    setShowSubmissionForm(false)
+                    setSubmissionFile(null)
+                  }}
+                  variant="outline"
+                  className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmitHomework}
+                  className="flex-1 bg-black text-white hover:bg-gray-800"
+                  disabled={!submissionFile || submitting}
+                >
+                  {submitting ? "Submitting..." : "Submit"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Debug Information */}
         {process.env.NODE_ENV === "development" && (
