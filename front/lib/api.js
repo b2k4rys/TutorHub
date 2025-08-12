@@ -258,6 +258,7 @@ export const api = {
 
   // Chat endpoints
   chat: {
+    getAllChats: (token) => api.get("/chats/all/", token),
     // Get WebSocket ticket for authentication
     getWebSocketTicket: (token) => api.post("/ws-ticket/", {}, token, false),
     // Start or get existing chat with another user
