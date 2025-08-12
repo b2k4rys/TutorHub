@@ -55,7 +55,7 @@ export default function HomeworkSubmissions() {
         setHomework(homeworkData)
 
         // Load submissions
-        const submissionsData = await api.homeworks.getSubmissions(classroomId, homeworkId, token)
+        const submissionsData = await api.homeworks.getSubmissionsList(classroomId, homeworkId, token)
         console.log("Submissions data:", submissionsData)
 
         const submissionsArray = Array.isArray(submissionsData) ? submissionsData : []

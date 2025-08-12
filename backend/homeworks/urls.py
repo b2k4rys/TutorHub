@@ -11,11 +11,11 @@ urlpatterns = [
     path('classroom/<int:classroom_id>/homework/<int:homework_id>', HomeworkDetailView.as_view(), name="view homework details"),
 
     path('classroom/<int:classroom_id>/', HomeworksView.as_view(), name='View all homeworks in classroom'),
-    path('classroom/<int:classroom_id>/homework/<int:assigned_homework_id>/', HomeworkViewSubmissions.as_view(), name="View all homework submission"),
+    path('classroom/<int:classroom_id>/homework/<int:assigned_homework_id>/submissions/', HomeworkViewSubmissions.as_view(), name="View all homework submission"),
 
 
     # ENDPOINT FOR VIEWING PARTICULAR SUBMISSION 
-    path('classroom/<int:classroom_id>/homework/<int:assigned_homework_id>/submission/<int:submission_id>/', HomeworkViewSubmission.as_view(),name="View particular homework submission"),
+    path('classroom/<int:classroom_id>/homework/<int:assigned_homework_id>/submissions/<int:submission_id>/', HomeworkViewSubmission.as_view(),name="View particular homework submission"),
 
 
     # ADD, READ COMMENTS OF THE HOMEWORK

@@ -31,30 +31,36 @@ export default function HomeworkDetail() {
 
     const loadHomeworkDetails = async () => {
       try {
-        // First, we need to find which classroom this homework belongs to
-        // We'll get this from the homework data or we might need to modify the API
-        // For now, let's try to get homework details and extract classroom info
-
-        // Note: We might need to modify this based on your actual API structure
-        // The current API structure suggests we need classroomId to get homework details
-        // Let's try a different approach - get all classrooms and find the one with this homework
-
-        const classrooms = await api.classroom.list(token)
         let foundHomework = null
         let foundClassroom = null
 
-        for (const classroom of classrooms) {
-          try {
-            const homeworks = await api.homeworks.getByClassroom(classroom.id, token)
-            const homework = homeworks.find((hw) => hw.id.toString() === homeworkId)
-            if (homework) {
-              foundHomework = homework
-              foundClassroom = classroom
-              break
+        try {
+          // First try direct homework endpoint if it exists
+          foundHomework = await api.homeworks.getById(homeworkId, token)
+
+          // If we get homework data, we still need to find the classroom
+          if (foundHomework && foundHomework.classroom_id) {
+            foundClassroom = await api.classroom.get(foundHomework.classroom_id, token)
+          }
+        } catch (directError) {
+          console.log("Direct homework endpoint failed, searching through classrooms...")
+
+          // Fallback: search through classrooms (existing logic)
+          const classrooms = await api.classroom.list(token)
+
+          for (const classroom of classrooms) {
+            try {
+              const homeworks = await api.homeworks.getByClassroom(classroom.id, token)
+              const homework = homeworks.find((hw) => hw.id.toString() === homeworkId)
+              if (homework) {
+                foundHomework = homework
+                foundClassroom = classroom
+                break
+              }
+            } catch (err) {
+              // Continue searching in other classrooms
+              continue
             }
-          } catch (err) {
-            // Continue searching in other classrooms
-            continue
           }
         }
 
