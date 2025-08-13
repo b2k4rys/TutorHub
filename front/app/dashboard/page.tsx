@@ -123,12 +123,14 @@ export default function Dashboard() {
             <div className="text-6xl mb-4">👥</div>
             <h3 className="text-xl font-bold text-black mb-2">My Students</h3>
             <p className="text-gray-600 mb-6">View and manage all your students</p>
-            <Button
-              variant="outline"
-              className="border-black text-black hover:bg-black hover:text-white bg-transparent"
-            >
-              View Students
-            </Button>
+            <Link href="/students">
+              <Button
+                variant="outline"
+                className="border-black text-black hover:bg-black hover:text-white bg-transparent"
+              >
+                View Students
+              </Button>
+            </Link>
           </div>
 
           {/* Students */}
@@ -136,12 +138,14 @@ export default function Dashboard() {
             <div className="text-6xl mb-4">👥</div>
             <h3 className="text-xl font-bold text-black mb-2">Students</h3>
             <p className="text-gray-600 mb-6">Manage your student roster</p>
-            <Button
-              variant="outline"
-              className="border-black text-black hover:bg-black hover:text-white bg-transparent"
-            >
-              View Students
-            </Button>
+            <Link href="/students">
+              <Button
+                variant="outline"
+                className="border-black text-black hover:bg-black hover:text-white bg-transparent"
+              >
+                View Students
+              </Button>
+            </Link>
           </div>
         </div>
 
