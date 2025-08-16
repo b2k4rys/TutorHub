@@ -37,6 +37,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'channels',
+    "graphene_django",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -182,3 +183,7 @@ CACHES = {
     }
 }
 # uvicorn core.asgi:application --host 127.0.0.1 --port 8000 --reload
+
+GRAPHENE = {
+    "SCHEMA": "django_root.schema.schema"
+}

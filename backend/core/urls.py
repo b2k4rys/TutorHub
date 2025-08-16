@@ -23,6 +23,8 @@ from drf_spectacular.views import (
 )
 from django.conf.urls.static import static
 from django.conf import settings
+from graphene_django.views import GraphQLView
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,6 +33,7 @@ urlpatterns = [
     path('api/classroom/', include('classroom.urls')),
     path('api/tutors/', include('tutors.urls')),
     path('api/homeworks/', include('homeworks.urls')),
+    path(r"graphql", GraphQLView.as_view(graphiql=True)),
 
 
     # ROUTE FOR WEBSOCKET TESTS

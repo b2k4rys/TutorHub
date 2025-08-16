@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.contenttypes.models import ContentType
 from .models import Message, Conversation
+import time 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -32,9 +33,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
         print(f"✅ User '{self.user}' connected to conversation: {self.conversation_id}")
 
-
     async def disconnect(self, close_code):
-
         if hasattr(self, 'room_group_name'):
             await self.channel_layer.group_discard(
                 self.room_group_name,
@@ -42,14 +41,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
         print(f"❌ User '{self.user}' disconnected from room.")
 
-
-
     async def receive(self, text_data):
         data = json.loads(text_data)
         message = data['message']
+        
+        # --- Latency Measurement Addition ---
+        client_send_timestamp = data.get('client_send_timestamp') # Get timestamp from client
+        server_receive_timestamp = int(time.time() * 1000) # Server receives message
+        # --- End Latency Measurement Addition ---
 
         await self.save_message(self.profile, self.conversation_id, message)
-
         
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -58,7 +59,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'message': message,
                 'sender_id': self.profile.id,
                 'sender_name': self.user.get_full_name() or self.user.username,
-                'sender_type': self.profile._meta.model_name
+                'sender_type': self.profile._meta.model_name,
+                # --- Latency Measurement Addition ---
+                'client_send_timestamp': client_send_timestamp, # Pass client timestamp through
+                'server_receive_timestamp': server_receive_timestamp, # Pass server receive timestamp
+                'server_send_timestamp': int(time.time() * 1000) # Server sends message
+                # --- End Latency Measurement Addition ---
             }
         )
 
@@ -69,6 +75,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_id': event['sender_id'],
             'sender_name': event['sender_name'],
             'sender_type': event['sender_type'],
+            # --- Latency Measurement Addition ---
+            'client_send_timestamp': event.get('client_send_timestamp'),
+            'server_receive_timestamp': event.get('server_receive_timestamp'),
+            'server_send_timestamp': event.get('server_send_timestamp'),
+            # --- End Latency Measurement Addition ---
         }))
 
     @database_sync_to_async

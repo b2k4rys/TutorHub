@@ -3,7 +3,8 @@ import { storage } from "./api"
 class ChatWebSocket {
   constructor(conversationId, onMessage, onStatusChange) {
     this.conversationId = conversationId
-    this.onMessage = onMessage
+    // Wrap the original onMessage to inject our latency calculation
+    this.originalOnMessage = onMessage
     this.onStatusChange = onStatusChange
     this.socket = null
     this.reconnectAttempts = 0
@@ -67,7 +68,30 @@ class ChatWebSocket {
         try {
           const data = JSON.parse(event.data)
           console.log("📨 WebSocket message received:", data)
-          this.onMessage(data)
+
+          // --- Latency Measurement Calculation ---
+          const clientSendTimestamp = data['client_send_timestamp'];
+          const serverReceiveTimestamp = data['server_receive_timestamp'];
+          const serverSendTimestamp = data['server_send_timestamp'];
+          const clientReceiveTimestamp = Date.now(); // Timestamp when message is received by client
+
+          if (clientSendTimestamp) {
+              const rtt = clientReceiveTimestamp - clientSendTimestamp;
+              console.log(`⏱️ Message Round-trip Latency: ${rtt} ms`);
+
+              if (serverReceiveTimestamp && serverSendTimestamp) {
+                  const clientToServerLatency = serverReceiveTimestamp - clientSendTimestamp;
+                  const serverProcessingTime = serverSendTimestamp - serverReceiveTimestamp;
+                  const serverToClientLatency = clientReceiveTimestamp - serverSendTimestamp;
+                  console.log(`  Client->Server: ${clientToServerLatency} ms`);
+                  console.log(`  Server Processing: ${serverProcessingTime} ms`);
+                  console.log(`  Server->Client: ${serverToClientLatency} ms`);
+              }
+          }
+          // --- End Latency Measurement Calculation ---
+
+          // Pass the message data to the original onMessage callback
+          this.originalOnMessage(data)
         } catch (error) {
           console.error("❌ Error parsing WebSocket message:", error)
         }
@@ -94,6 +118,10 @@ class ChatWebSocket {
         console.error("❌ WebSocket error:", error)
         this.isConnecting = false
         this.onStatusChange("error")
+
+        if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.scheduleReconnect()
+        }
       }
     } catch (error) {
       console.error("❌ Failed to connect to WebSocket:", error)
@@ -122,7 +150,12 @@ class ChatWebSocket {
 
   sendMessage(message) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      const messageData = { message }
+      // --- Latency Measurement Addition ---
+      const messageData = { 
+        message: message,
+        client_send_timestamp: Date.now() // Add the client-side timestamp here
+      }
+      // --- End Latency Measurement Addition ---
       console.log("📤 Sending message:", messageData)
       this.socket.send(JSON.stringify(messageData))
       return true
@@ -158,4 +191,4 @@ class ChatWebSocket {
   }
 }
 
-export default ChatWebSocket
+export default ChatWebSocket;
